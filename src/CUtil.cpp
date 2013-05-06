@@ -1,6 +1,3 @@
-#include "Stdafx.h"
-
-
 #include <CUtil.h>
 
 void CUtil::Tokenize(const string& str,

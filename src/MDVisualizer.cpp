@@ -4,6 +4,9 @@
 #include <mts0_io.h>
 #include <COpenGL.h>
 #include <math.h>
+#include <string>
+
+using std::string;
 
 Variables MDVisualizer::var;
 

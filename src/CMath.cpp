@@ -1,6 +1,3 @@
-#include "Stdafx.h"
-
-
 #include <CMath.h>
 
 const double CMath::pi = 3.14159265;

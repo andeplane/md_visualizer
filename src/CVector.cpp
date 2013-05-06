@@ -1,5 +1,3 @@
-#include "Stdafx.h"
-
 #include <CVector.h>
 
 void CVector::FloorColor()
