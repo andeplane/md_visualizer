@@ -1,10 +1,13 @@
 #pragma once
 #include <GL/glew.h>
 #include <GL/glfw.h>      // Include OpenGL Framework library
-#include "Camera.h"       // Include our Camera header so we can work with Camera objects
-#include "FpsManager.hpp" // Include our FpsManager class
-#include "Vec3.hpp"       // Include our Vec3 class
+#include <Camera.h>       // Include our Camera header so we can work with Camera objects
+#include <FpsManager.hpp> // Include our FpsManager class
+#include <Vec3.hpp>       // Include our Vec3 class
 #include <string>
+#include <OGLShader.h>
+#include <CShaders.h>
+
 using std::string;
 class MDOpenGL {
 public:   
@@ -19,6 +22,7 @@ public:
     double aspect_ratio;
     
     Camera *cam;
+    CShaderContainer shader_container;
 
     // Define our window title to append the FPS stats to
     string window_title;
@@ -33,6 +37,9 @@ public:
     void pop();
     void push();
     void init_GL();
+    void SetOrthographicProjection();
+    void ResetPerspectiveProjection();
+    void buffer2texture(GLuint texture, int w, int h, int type);
 
     MDOpenGL() {
         

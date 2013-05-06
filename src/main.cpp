@@ -1,12 +1,12 @@
-#include "MDOpenGL.h"
+#include <MDOpenGL.h>
 #include <iostream>
 #include <string>
 #include <GLUT/glut.h>
-#include "Camera.h"       // Include our Camera header so we can work with Camera objects
-#include "FpsManager.hpp" // Include our FpsManager class
-#include "Vec3.hpp"       // Include our Vec3 class
-#include "mts0_io.h"
-
+#include <Camera.h>       // Include our Camera header so we can work with Camera objects
+#include <FpsManager.hpp> // Include our FpsManager class
+#include <Vec3.hpp>       // Include our Vec3 class
+#include <mts0_io.h>
+#include <MDShaders.h>
 
 // Specify default namespace for commonly used elements
 using std::string;
@@ -18,6 +18,8 @@ double atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 1.86, 1.02};
 
 bool stop_loading = true;
 int draw_mode = 1;
+
+MDSphereShader sphere_shader;
 
 // Function to draw a grid of lines
 void draw_box(float length)
@@ -84,18 +86,40 @@ void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl) {
     double cam_y = mdopengl.cam->getYPos();
     double cam_z = mdopengl.cam->getZPos();
 
+    sphere_shader.Start();
+    double one_over_1500 = 1.0/1500;
     for(int n=0;n<positions.size(); n++) {
         int atom_type = atom_types[n];
-        glPushMatrix();
-        glTranslatef(positions[n][0],positions[n][1],positions[n][2]);
         double dx = positions[n][0]-cam_x;
         double dy = positions[n][1]-cam_y;
         double dz = positions[n][2]-cam_z;
         double dr2 = dx*dx + dy*dy + dz*dz;
-        glColor4f(colors[atom_type][0],colors[atom_type][1],colors[atom_type][2],1.0);
-        int quality = max( (10 - (dr2-300)/250),5.0);
-        glutSolidSphere(0.3*atom_radii[atom_type],quality,quality);
-        glPopMatrix();
+        double dr2_times_one_over_1500 = dr2*one_over_1500;
+        if(dr2<1500) {
+            double size_factor = 1.0 - dr2_times_one_over_1500;
+            glPushMatrix();
+            glTranslatef(positions[n][0],positions[n][1],positions[n][2]);
+            sphere_shader.set_light_pos(-dx,-dy,-dz);
+            sphere_shader.set_color(colors[atom_type][0],colors[atom_type][1],colors[atom_type][2]);
+            int quality = max( (10 - 10*dr2_times_one_over_1500),3.0);
+            glutSolidSphere(size_factor*0.3*atom_radii[atom_type],quality,quality);
+            glPopMatrix();
+        }
+    }
+    sphere_shader.End();
+
+    for(int n=0;n<positions.size(); n++) {
+        int atom_type = atom_types[n];
+        double dx = positions[n][0]-cam_x;
+        double dy = positions[n][1]-cam_y;
+        double dz = positions[n][2]-cam_z;
+        double dr2 = dx*dx + dy*dy + dz*dz;
+        if(dr2>=1500) {
+            glBegin(GL_POINTS);
+            glColor4f(colors[atom_type][0],colors[atom_type][1],colors[atom_type][2],1.0);
+            glVertex3f(positions[n][0],positions[n][1],positions[n][2]);
+            glEnd();
+        }
     }
 }
  
@@ -112,7 +136,7 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl)
     // Move the camera to our location in space
     glRotatef(mdopengl.cam->getXRot(), 1.0f, 0.0f, 0.0f); // Rotate our camera on the x-axis (looking up and down)
     glRotatef(mdopengl.cam->getYRot(), 0.0f, 1.0f, 0.0f); // Rotate our camera on the  y-axis (looking left and right)
- 
+
     // Translate the ModelView matrix to the position of our camera - everything should now be drawn relative
     // to this position!
     glTranslatef( -mdopengl.cam->getXPos(), -mdopengl.cam->getYPos(), -mdopengl.cam->getZPos() );
@@ -120,6 +144,20 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl)
 
     if(draw_mode==1) draw_points(mts0_io);
     else if(draw_mode==2) draw_spheres(mts0_io,mdopengl);
+
+    glBegin(GL_LINES);
+    glColor4f(1.0,0.0,0.0,1.0);
+    glVertex3f(0.0,0.0,0.0);
+    glVertex3f(1.0,0.0,0.0);
+
+    glColor4f(0.0,1.0,0.0,1.0);
+    glVertex3f(0.0,0.0,0.0);
+    glVertex3f(0.0,1.0,0.0);
+
+    glColor4f(0.0,0.0,1.0,1.0);
+    glVertex3f(0.0,0.0,0.0);
+    glVertex3f(0.0,0.0,1.0);
+    glEnd();
  
     // ----- Stop Drawing Stuff! ------
  
@@ -207,11 +245,15 @@ int main(int argc, char **argv)
     int current_timestep = 0;
     char *filename = new char[5000];
     int max_timestep = 9999;
+    // char foldername_base[] = "/projects/andershaf_nanoporous_sio2_compressed_pore/silica_nacl_1_permille/dump/";
     char foldername_base[] = "/projects/andershaf_nanoporous_sio2_compressed_pore/medium_silica_water/dump/";
     
     sprintf(filename,"%s/%06d/mts0/",foldername_base, current_timestep++);
     mts0_io->load_atoms(string(filename));
     mdopengl.initialize(1280,768, handle_keypress, handle_mouse_move);
+    GLenum err = glewInit();
+
+    sphere_shader.Initialize("sphere_shader");
     
     while (running)
     {

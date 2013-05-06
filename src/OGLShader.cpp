@@ -1,6 +1,3 @@
-#include "Stdafx.h"
-
-
 #include <OGLShader.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,7 +6,6 @@
 #include <algorithm>
 #include <math.h>
 #include <string.h>
-
 
 #include <CUtil.h>
 //#include "aGL_Extensions.cpp"

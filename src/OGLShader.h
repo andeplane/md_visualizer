@@ -243,8 +243,11 @@ public:
    vector<CShader> shaders;
 
    CShaderObject* addshader(string name, string vert, string frag) {
-     if (!glewIsSupported("GL_VERSION_2_0"))
-       throw string("Error! Opengl 2.0 not supported!");                                        
+     if (!glewIsSupported("GL_VERSION_2_0")) {
+      cout << "Error! Opengl 2.0 not supported!" << endl;
+      throw string("Error! Opengl 2.0 not supported!");
+     }
+       
 
       vert = shader_dir + vert;
       frag = shader_dir + frag;
@@ -259,8 +262,11 @@ public:
    }
 
    CShaderObject* addshaderfrommemory(string name, string vert, string frag) {
-     if (!glewIsSupported("GL_VERSION_2_0"))
-       throw string("Error! Opengl 2.0 not supported!");                                        
+     if (!glewIsSupported("GL_VERSION_2_0")) {
+      cout << "Error! Opengl 2.0 not supported!" << endl;
+      throw string("Error! Opengl 2.0 not supported!");
+     }
+       
 
      /*vert = shader_dir + vert;
       frag = shader_dir + frag;
