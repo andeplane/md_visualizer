@@ -9,6 +9,14 @@
 #include <MDShaders.h>
 #include <CIniFile.h>
 
+#define SI_TYPE 1
+#define A_TYPE 2
+#define H_TYPE 3
+#define O_TYPE 4
+#define NA_TYPE 5
+#define CL_TYPE 6
+#define X_TYPE 7
+
 // Specify default namespace for commonly used elements
 using std::string;
 using std::cout;
@@ -23,47 +31,47 @@ int draw_mode = 1;
 MDSphereShader sphere_shader;
 
 // Function to draw a grid of lines
-void draw_box(float length)
+void draw_box(vector<double> &system_size)
 {
     glColor3ub(255, 255, 255);
  
     // Draw our ground grid
     glBegin(GL_LINES);
     glVertex3f(0,0,0);
-    glVertex3f(length,0,0);
+    glVertex3f(system_size[0],0,0);
 
-    glVertex3f(length,0,0);
-    glVertex3f(length,length,0);
+    glVertex3f(system_size[0],0,0);
+    glVertex3f(system_size[0],system_size[1],0);
 
-    glVertex3f(length,length,0);
-    glVertex3f(0,length,0);
+    glVertex3f(system_size[0],system_size[1],0);
+    glVertex3f(0,system_size[1],0);
 
-    glVertex3f(0,length,0);
+    glVertex3f(0,system_size[1],0);
     glVertex3f(0,0,0);
 
     glVertex3f(0,0,0);
-    glVertex3f(0,0,length);
+    glVertex3f(0,0,system_size[2]);
 
-    glVertex3f(0,0,length);
-    glVertex3f(0,length,length);
+    glVertex3f(0,0,system_size[2]);
+    glVertex3f(0,system_size[1],system_size[2]);
 
-    glVertex3f(0,length,length);
-    glVertex3f(0,length,0);
+    glVertex3f(0,system_size[1],system_size[2]);
+    glVertex3f(0,system_size[1],0);
 
-    glVertex3f(0,length,length);
-    glVertex3f(length,length,length);
+    glVertex3f(0,system_size[1],system_size[2]);
+    glVertex3f(system_size[0],system_size[1],system_size[2]);
 
-    glVertex3f(length,length,length);
-    glVertex3f(length,0,length);
+    glVertex3f(system_size[0],system_size[1],system_size[2]);
+    glVertex3f(system_size[0],0,system_size[2]);
 
-    glVertex3f(length,0,length);
-    glVertex3f(0,0,length);
+    glVertex3f(system_size[0],0,system_size[2]);
+    glVertex3f(0,0,system_size[2]);
 
-    glVertex3f(length,length,length);
-    glVertex3f(length,length,0);
+    glVertex3f(system_size[0],system_size[1],system_size[2]);
+    glVertex3f(system_size[0],system_size[1],0);
 
-    glVertex3f(length,0,length);
-    glVertex3f(length,0,0);
+    glVertex3f(system_size[0],0,system_size[2]);
+    glVertex3f(system_size[0],0,0);
 
     glEnd();
 }
@@ -81,9 +89,18 @@ void draw_points(Mts0_io *mts0_io, Timestep *timestep) {
     glEnd();
 }
 
+bool game_mode = false;
+vector<int> atom_ids_taken;
+int number_of_na;
+int number_of_cl;
+int caught_na_ions = 0;
+int caught_cl_ions = 0;
+
+
 void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
     vector<vector<double> > &positions = timestep->positions;
     vector<int> &atom_types = timestep->atom_types;
+    vector<int> &atom_ids = timestep->atom_ids;
     double cam_x = mdopengl.cam->getXPos();
     double cam_y = mdopengl.cam->getYPos();
     double cam_z = mdopengl.cam->getZPos();
@@ -92,6 +109,7 @@ void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
     double one_over_1500 = 1.0/1500;
     for(int n=0;n<positions.size(); n++) {
         int atom_type = atom_types[n];
+        int atom_id = atom_ids[n];
         double dx = positions[n][0]-cam_x;
         double dy = positions[n][1]-cam_y;
         double dz = positions[n][2]-cam_z;
@@ -99,12 +117,45 @@ void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
         double dr2_times_one_over_1500 = dr2*one_over_1500;
         if(dr2<1500) {
             double size_factor = 1.0 - dr2_times_one_over_1500;
+            // double size_factor = 0.7;
+            bool did_take_before = false;
+            if(game_mode) {
+                for(int m=0;m<atom_ids_taken.size(); m++) {
+                    if(atom_ids_taken[m] == atom_id) did_take_before = true;
+                }
+
+                if(!did_take_before && dr2 < size_factor*atom_radii[atom_type]) {
+                    if(atom_type == NA_TYPE) {
+                        caught_na_ions++;
+                        atom_ids_taken.push_back(atom_id);
+                        cout << "You gathered a sodium ion. Now there are only " << (number_of_na - caught_na_ions) << " sodium ions left!" << endl;
+                        std::cout << "\007" << endl;
+                    } else if(atom_type == CL_TYPE) {
+                        caught_cl_ions++;
+                        atom_ids_taken.push_back(atom_id);
+                        cout << "You gathered a chlorine ion. Now there are only " << (number_of_cl - caught_cl_ions) << " chlorine ions left!" << endl;
+                        std::cout << "\007" << endl;
+
+                    } else if(atom_type == H_TYPE || atom_type == O_TYPE) {
+                        cout << "You drowned ..." << endl;
+                        cout << "You only collected " << 100.0*(caught_cl_ions+caught_na_ions)/(number_of_cl+number_of_na) << "% of the ions. You'll never be the man your mother is." << endl;
+                        exit(0);
+                    } else {
+                        cout << "You broke a glass ..." << endl;
+                        cout << "You only collected " << 100.0*(caught_cl_ions+caught_na_ions)/(number_of_cl+number_of_na) << "% of the ions. Ordinarily people live and learn. You just live." << endl;
+                        exit(0);
+                    }
+                }
+            }
+            
+            if(game_mode && did_take_before) continue;
+
             glPushMatrix();
             glTranslatef(positions[n][0],positions[n][1],positions[n][2]);
             sphere_shader.set_light_pos(-dx,-dy,-dz);
             sphere_shader.set_color(colors[atom_type][0],colors[atom_type][1],colors[atom_type][2]);
             int quality = max( (10 - 10*dr2_times_one_over_1500),3.0);
-            glutSolidSphere(size_factor*0.3*atom_radii[atom_type],quality,quality);
+            glutSolidSphere(size_factor*atom_radii[atom_type],quality,quality);
             glPopMatrix();
         }
     }
@@ -142,7 +193,7 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
     // Translate the ModelView matrix to the position of our camera - everything should now be drawn relative
     // to this position!
     glTranslatef( -mdopengl.cam->getXPos(), -mdopengl.cam->getYPos(), -mdopengl.cam->getZPos() );
-    draw_box(6.327983E+01);
+    draw_box(mts0_io->system_size);
 
     if(draw_mode==1) draw_points(mts0_io,timestep);
     else if(draw_mode==2) draw_spheres(mts0_io,mdopengl,timestep);
@@ -250,6 +301,7 @@ int main(int argc, char **argv)
     bool preload = ini.getbool("preload");
     int current_timestep = 0;
     int max_timestep = ini.getint("max_timestep");
+    game_mode = ini.getbool("game_mode");
     string foldername_base = ini.getstring("foldername_base");
     
     Mts0_io *mts0_io = new Mts0_io(nx,ny,nz,max_timestep, foldername_base, preload);
@@ -259,6 +311,13 @@ int main(int argc, char **argv)
 
     sphere_shader.Initialize("sphere_shader");
     Timestep *current_timestep_object = mts0_io->get_next_timestep();
+    vector<int> number_of_atoms_of_each_type = current_timestep_object->get_number_of_atoms_of_each_type();
+    
+    if(game_mode) {
+        number_of_na = number_of_atoms_of_each_type[NA_TYPE];
+        number_of_cl = number_of_atoms_of_each_type[CL_TYPE];
+        cout << "There are " << number_of_na << " na ions and " << number_of_cl << " cl ions. Gotta catch'em all!" << endl;
+    }
 
     while (running)
     {
@@ -267,6 +326,7 @@ int main(int argc, char **argv)
         // Calculate our camera movement
         mdopengl.cam->move();
  
+        mdopengl.set_window_title(string("Molecular Dynamics Visualizer (MDV) - timestep 0"));
         // Draw our scene
         drawScene(mts0_io,mdopengl,current_timestep_object);
  

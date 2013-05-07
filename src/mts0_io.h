@@ -35,6 +35,7 @@ public:
   vector<vector<vector<double> > > h_matrix;
   vector<double> get_lx_ly_lz();
   int get_number_of_atoms();
+  vector<int> get_number_of_atoms_of_each_type();
 
   Timestep(string filename, int nx_, int ny_, int nz_);
   ~Timestep();
@@ -46,7 +47,6 @@ public:
 class Mts0_io {
 private:
   char mts0_directory[5000];
-  vector<double> system_size;
   int current_timestep;
   int max_timestep;
   bool preload;
@@ -54,6 +54,7 @@ private:
   string foldername_base;
 
 public:
+  vector<double> system_size;
 	int nx, ny, nz;
   Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_);
   Timestep *get_next_timestep();

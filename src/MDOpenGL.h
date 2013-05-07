@@ -40,7 +40,7 @@ public:
     void SetOrthographicProjection();
     void ResetPerspectiveProjection();
     void buffer2texture(GLuint texture, int w, int h, int type);
-
+    void set_window_title(string title);
     MDOpenGL() {
         
     }

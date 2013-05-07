@@ -7,7 +7,7 @@ int alphaBits  = 8, depthBits = 24,   stencilBits = 0;
 
 void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmouseposfun handle_mouse_move) {
     running = true;
-    window_title = "Molecular Dynamics Visualizer (MDV)";
+    window_title = "Molecular Dynamics Visualizer (MDV) - timestep 0";
 
     window_width = w;
     window_height = h;
@@ -15,7 +15,7 @@ void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmousepos
     mid_window_y = window_height/2;
     aspect_ratio = (GLfloat)w/GLfloat(h);
 
-    field_of_view = 45.0f;            // Define our field of view (i.e. how quickly foreshortening occurs)
+    field_of_view = 60.0f;            // Define our field of view (i.e. how quickly foreshortening occurs)
     near        = 2.0f;             // The near (Z Axis) point of our viewing frustum (default 2.0f)
     far         = 1500.0f;          // The far  (Z Axis) point of our viewing frustum (default 1500.0f)
 
@@ -35,6 +35,8 @@ void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmousepos
         exit(1);
     }
 
+    glfwSetWindowPos(0,0);
+
     // Call our initGL function to set up our OpenGL options
     init_GL();
 
@@ -53,6 +55,11 @@ void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmousepos
     CShaderParent::MDOpenGLPointer = this;
 }
 
+void MDOpenGL::set_window_title(string window_title_) {
+  window_title = window_title_;
+  glfwSetWindowTitle(window_title.c_str());
+}
+
 void MDOpenGL::init_GL() {
     // ----- GLFW Settings -----
     
@@ -63,7 +70,7 @@ void MDOpenGL::init_GL() {
     // ----- Window and Projection Settings -----
  
     // Set the window title
-    glfwSetWindowTitle("Solar System FPS Controls Mk2| r3dux.org | Dec 2012");
+    glfwSetWindowTitle(window_title.c_str());
  
     // Setup our viewport to be the entire size of the window
     glViewport(0, 0, (GLsizei)window_width, (GLsizei)window_height);

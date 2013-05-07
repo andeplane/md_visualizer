@@ -16,6 +16,17 @@ Timestep::~Timestep() {
 	h_matrix.clear();
 }
 
+vector<int> Timestep::get_number_of_atoms_of_each_type() {
+	int num_atoms = atom_types.size();
+	vector<int> number_of_atoms_of_each_type;
+	number_of_atoms_of_each_type.resize(100,0);
+	for(int atom_index=0; atom_index<num_atoms; atom_index++) {
+		number_of_atoms_of_each_type[ atom_types[atom_index] ]++;
+	}
+
+	return number_of_atoms_of_each_type;
+}
+
 Mts0_io::Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_) {
 	nx = nx_;
 	ny = ny_;
@@ -272,6 +283,8 @@ Timestep *Mts0_io::get_next_timestep() {
 		return timesteps[current_timestep];
 	} else {
 		sprintf(mts0_directory, "%s/%06d/mts0/",foldername_base.c_str(), current_timestep);
-		return new Timestep(string(mts0_directory),nx, ny, nz);
+		Timestep *timestep = new Timestep(string(mts0_directory),nx, ny, nz);
+		system_size = timestep->get_lx_ly_lz();
+		return timestep;
 	}
 }
