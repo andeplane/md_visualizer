@@ -23,55 +23,40 @@ mts0_directory - mts0-directory [string]
 
 using namespace std;
 
-class Mts0_io {
-private:
-	static const double bohr = 0.5291772;
-	
-	void read_data(ifstream *file, void *value);
-	void write_data(ofstream *file, void *value, int &N);
-	void read_mts(char *filename, vector<int> &atom_types_local, vector<int> &atom_ids_local, vector<vector<double> > &positions_local, vector<vector<double> > &velocities_local);
-  void write_mts(char *filename, vector<int> &atom_types_local, vector<int> &atom_ids_local, vector<vector<double> > &positions_local, vector<vector<double> > &velocities_local);
-  void is_all_atoms_inside_system();
-  bool next_atom_id_is_known;
-  bool atom_type_masses_is_known;
-  bool did_remove_at_least_one_atom;
-  int next_atom_id;
-  vector<double> atom_type_masses;
-  vector<vector<vector<double> > > h_matrix;
-
+class Timestep {
 public:
-	int nx, ny, nz;
-
+  int nx, ny, nz;
+  static const double bohr = 0.5291772;
+  vector<vector<int> > create_neighbor_list(const double &neighbor_list_radius);
   vector<vector<double> > positions;
   vector<vector<double> > velocities;
   vector<int> atom_ids;
   vector<int> atom_types;
-  vector<bool> atom_is_removed;
-  
-  
-  Mts0_io(int nx_, int ny_, int nz_);
-  
-  vector<vector<int> > create_neighbor_list(const double &neighbor_list_radius);
-  int add_atom(int atom_type, vector<double> position, vector<double> velocity);
-  void remove_atom(int atom_to_be_removed_index);
-  void remove_atoms(vector<int> &atoms_to_be_removed_indices);
-  void bring_removed_atoms_back(vector<int> &atoms_to_be_removed_indices);
-
-  void rearrange_vectors_by_moving_atoms_from_end_to_locations_where_atoms_have_been_removed();
-  
-  void set_atom_type_masses(vector<double> atom_type_masses_);
-  int get_number_of_atoms();
+  vector<vector<vector<double> > > h_matrix;
   vector<double> get_lx_ly_lz();
-  double get_volume();
-  vector<int> get_number_of_atoms_of_each_type();
-  int get_next_atom_id();
-  vector<double> get_momentum_of_atom(int atom_index);
-  vector<double> get_momentum_of_atoms(vector<int> atom_indices);
-  double get_mass_of_atom(int atom_index);
-  double get_squared_distance_between_atoms(int atom_index_0, int atom_index_1);
-  double get_min_distance_between_atom_types(int wanted_atom_type_0, int wanted_atom_type_1, double max_min_distance);
+  int get_number_of_atoms();
 
-  
-  void load_atoms(string mts0_directory);
-  void save_atoms(string mts0_directory);
+  Timestep(string filename, int nx_, int ny_, int nz_);
+  ~Timestep();
+  void load_atoms(string filename);
+  void read_data(ifstream *file, void *value);
+  void read_mts(char *filename, vector<int> &atom_types_local, vector<int> &atom_ids_local, vector<vector<double> > &positions_local, vector<vector<double> > &velocities_local);
+};
+
+class Mts0_io {
+private:
+  char mts0_directory[5000];
+  vector<double> system_size;
+  int current_timestep;
+  int max_timestep;
+  bool preload;
+  vector<Timestep*> timesteps;
+  string foldername_base;
+
+public:
+	int nx, ny, nz;
+  Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_);
+  Timestep *get_next_timestep();
+
+  void load_timesteps();
 };

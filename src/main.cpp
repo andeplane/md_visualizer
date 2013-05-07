@@ -7,6 +7,7 @@
 #include <Vec3.hpp>       // Include our Vec3 class
 #include <mts0_io.h>
 #include <MDShaders.h>
+#include <CIniFile.h>
 
 // Specify default namespace for commonly used elements
 using std::string;
@@ -67,9 +68,10 @@ void draw_box(float length)
     glEnd();
 }
 
-void draw_points(Mts0_io *mts0_io) {
-    vector<vector<double> > positions = mts0_io->positions;
-    vector<int> atom_types = mts0_io->atom_types;
+void draw_points(Mts0_io *mts0_io, Timestep *timestep) {
+    vector<vector<double> > &positions = timestep->positions;
+    vector<int> &atom_types = timestep->atom_types;
+    
     glBegin(GL_POINTS);
     for(int n=0;n<positions.size(); n++) {
         int atom_type = atom_types[n];
@@ -79,9 +81,9 @@ void draw_points(Mts0_io *mts0_io) {
     glEnd();
 }
 
-void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl) {
-    vector<vector<double> > positions = mts0_io->positions;
-    vector<int> atom_types = mts0_io->atom_types;
+void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
+    vector<vector<double> > &positions = timestep->positions;
+    vector<int> &atom_types = timestep->atom_types;
     double cam_x = mdopengl.cam->getXPos();
     double cam_y = mdopengl.cam->getYPos();
     double cam_z = mdopengl.cam->getZPos();
@@ -124,7 +126,7 @@ void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl) {
 }
  
 // Function to draw our scene
-void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl)
+void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
 {
     // Clear the screen and depth buffer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -142,8 +144,8 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl)
     glTranslatef( -mdopengl.cam->getXPos(), -mdopengl.cam->getYPos(), -mdopengl.cam->getZPos() );
     draw_box(6.327983E+01);
 
-    if(draw_mode==1) draw_points(mts0_io);
-    else if(draw_mode==2) draw_spheres(mts0_io,mdopengl);
+    if(draw_mode==1) draw_points(mts0_io,timestep);
+    else if(draw_mode==2) draw_spheres(mts0_io,mdopengl,timestep);
 
     glBegin(GL_LINES);
     glColor4f(1.0,0.0,0.0,1.0);
@@ -240,34 +242,33 @@ int main(int argc, char **argv)
  
     // Flag to keep our main loop running
     bool running = true;
-
-    Mts0_io *mts0_io = new Mts0_io(2,2,2);
+    CIniFile ini;
+    ini.load("md_visualizer.ini");
+    int nx = ini.getint("nx");
+    int ny = ini.getint("ny");
+    int nz = ini.getint("nz");
+    bool preload = ini.getbool("preload");
     int current_timestep = 0;
-    char *filename = new char[5000];
-    int max_timestep = 9999;
-    // char foldername_base[] = "/projects/andershaf_nanoporous_sio2_compressed_pore/silica_nacl_1_permille/dump/";
-    char foldername_base[] = "/projects/andershaf_nanoporous_sio2_compressed_pore/medium_silica_water/dump/";
+    int max_timestep = ini.getint("max_timestep");
+    string foldername_base = ini.getstring("foldername_base");
     
-    sprintf(filename,"%s/%06d/mts0/",foldername_base, current_timestep++);
-    mts0_io->load_atoms(string(filename));
-    mdopengl.initialize(1280,768, handle_keypress, handle_mouse_move);
+    Mts0_io *mts0_io = new Mts0_io(nx,ny,nz,max_timestep, foldername_base, preload);
+
+    mdopengl.initialize(ini.getint("screen_width"),ini.getint("screen_height"), handle_keypress, handle_mouse_move);
     GLenum err = glewInit();
 
     sphere_shader.Initialize("sphere_shader");
-    
+    Timestep *current_timestep_object = mts0_io->get_next_timestep();
+
     while (running)
     {
-        if(!stop_loading) {
-            sprintf(filename,"%s/%06d/mts0/",foldername_base, current_timestep++);
-            mts0_io->load_atoms(string(filename));
-            if(current_timestep>max_timestep) current_timestep = 0;
-        }
+        if(!stop_loading) current_timestep_object = mts0_io->get_next_timestep();
 
         // Calculate our camera movement
         mdopengl.cam->move();
  
         // Draw our scene
-        drawScene(mts0_io,mdopengl);
+        drawScene(mts0_io,mdopengl,current_timestep_object);
  
         // exit if ESC was pressed or window was closed
         running = !glfwGetKey(GLFW_KEY_ESC) && glfwGetWindowParam(GLFW_OPENED);
