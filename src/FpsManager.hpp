@@ -50,7 +50,7 @@
 class FpsManager
 {
  
-    private:
+    public:
         double frameStartTime;         // Frame start time
         double frameEndTime;           // Frame end time
         double frameDuration;          // How many milliseconds between the last frame and this frame
@@ -68,6 +68,7 @@ class FpsManager
         std::string windowTitle;       // Window title to update view GLFW
  
         bool verbose;                  // Whether or not to output FPS details to the console or update the window
+        double average_fps;
  
         // Limit the minimum and maximum target FPS value to relatively sane values
         static const double MIN_TARGET_FPS = 20.0;
@@ -81,6 +82,7 @@ class FpsManager
             frameCount     = 0;
  
             currentFps     = 0.0;
+            average_fps    = 60.0;
  
             sleepDuration  = 0.0;
  
@@ -89,7 +91,7 @@ class FpsManager
             frameDuration  = 1;
  
             lastReportTime = frameStartTime;
-            reportInterval = 1.0f;
+            reportInterval = 0.2f;
  
             windowTitle    = "NONE";
  
@@ -200,6 +202,7 @@ class FpsManager
  
                     // Calculate the FPS as the number of frames divided by the interval in seconds
                     currentFps =  (double)frameCount / reportInterval;
+                    average_fps  = 0.9*average_fps + 0.1*currentFps;
  
                     // Reset the frame counter to 1 (and not zero - which would make our FPS values off)
                     frameCount = 1;

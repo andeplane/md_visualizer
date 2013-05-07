@@ -23,25 +23,35 @@ mts0_directory - mts0-directory [string]
 
 using namespace std;
 
+#define SI_TYPE 1
+#define A_TYPE 2
+#define H_TYPE 3
+#define O_TYPE 4
+#define NA_TYPE 5
+#define CL_TYPE 6
+#define X_TYPE 7
+
 class Timestep {
 public:
   int nx, ny, nz;
   static const double bohr = 0.5291772;
-  vector<vector<int> > create_neighbor_list(const double &neighbor_list_radius);
-  vector<vector<double> > positions;
-  vector<vector<double> > velocities;
+  vector<vector<int> > create_neighbor_list(const float &neighbor_list_radius);
+  vector<vector<float> > positions;
   vector<int> atom_ids;
   vector<int> atom_types;
-  vector<vector<vector<double> > > h_matrix;
-  vector<double> get_lx_ly_lz();
+  vector<bool> atom_is_removed;
+  vector<vector<vector<float> > > h_matrix;
+  vector<float> get_lx_ly_lz();
   int get_number_of_atoms();
   vector<int> get_number_of_atoms_of_each_type();
+  void rearrange_vectors_by_moving_atoms_from_end_to_locations_where_atoms_have_been_removed();
 
   Timestep(string filename, int nx_, int ny_, int nz_);
   ~Timestep();
+  void remove_water();
   void load_atoms(string filename);
   void read_data(ifstream *file, void *value);
-  void read_mts(char *filename, vector<int> &atom_types_local, vector<int> &atom_ids_local, vector<vector<double> > &positions_local, vector<vector<double> > &velocities_local);
+  void read_mts(char *filename, vector<int> &atom_types_local, vector<int> &atom_ids_local, vector<vector<float> > &positions_local);
 };
 
 class Mts0_io {
@@ -54,7 +64,7 @@ private:
   string foldername_base;
 
 public:
-  vector<double> system_size;
+  vector<float> system_size;
 	int nx, ny, nz;
   Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_);
   Timestep *get_next_timestep();
