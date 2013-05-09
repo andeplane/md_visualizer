@@ -202,7 +202,7 @@ class FpsManager
  
                     // Calculate the FPS as the number of frames divided by the interval in seconds
                     currentFps =  (double)frameCount / reportInterval;
-                    average_fps  = 0.9*average_fps + 0.1*currentFps;
+                    average_fps  = 0.8*average_fps + 0.2*currentFps;
  
                     // Reset the frame counter to 1 (and not zero - which would make our FPS values off)
                     frameCount = 1;

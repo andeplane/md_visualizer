@@ -25,7 +25,7 @@
 using std::string;
 using std::cout;
 using std::endl;
-                    // Not Av   Si                      Si-O       H            O      Na                   Cl     X
+                    // Not Av   Si                      Si-O       H            O      Na                   Cl
 double colors[7][3] = {{1,1,1},{230.0/255,230.0/255,0},{0,0,1},{1.0,1.0,1.0},{1,0,0},{9.0/255,92.0/255,0},{95.0/255,216.0/255,250.0/255}};
 double visual_atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 1.86, 1.02};
 double hit_atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 2*1.86, 2*1.02};
@@ -44,7 +44,24 @@ int points_1 = 10;
 int points_2 = 10;
 int num_indices = 2*points_1*points_2;
 
-void prepare_spheres() {
+bool game_mode = false;
+vector<int> atom_ids_taken;
+int number_of_na;
+int number_of_cl;
+int caught_na_ions = 0;
+int caught_cl_ions = 0;
+double t0 = time(NULL);
+double dr2_max = 3500;
+double color_cutoff = 2000;
+
+void restart() {
+    atom_ids_taken.clear();
+    caught_na_ions = 0;
+    caught_cl_ions = 0;
+    t0 = time(NULL);
+}
+
+void prepare_spheres_for_atom_types() {
     double size_factor = 0.5;
     GLfloat *vertices = new GLfloat[6*num_indices];
     GLuint *indices = new GLuint[num_indices];
@@ -111,7 +128,7 @@ void prepare_spheres() {
     }
 }
 
-void prepare_spheres2(Timestep *timestep) {
+void prepare_spheres_for_each_atom(Timestep *timestep) {
     vector<vector<float> > &positions = timestep->positions;
     vector<int> &atom_types = timestep->atom_types;
 
@@ -192,11 +209,10 @@ void prepare_spheres2(Timestep *timestep) {
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLuint)*num_indices, indices);
 }
 
-double dr2_max = 3500;
-
-void draw_spheres3(Timestep *timestep) {
+void draw_spheres_4(Timestep *timestep) {
+    // This method will draw all spheres that are already on the GPU.
+    // We won't need any glTranslate3f here, all positions are absolute.
     sphere_shader.Start();
-    
 
     // Step 2
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -227,7 +243,7 @@ void draw_spheres3(Timestep *timestep) {
     sphere_shader.End();
 }
 
-void draw_points2(MDOpenGL &mdopengl, Timestep *timestep) {
+void draw_spheres_3(MDOpenGL &mdopengl, Timestep *timestep) {
     sphere_shader.Start();
 
     vector<vector<float> > &positions = timestep->positions;
@@ -250,7 +266,7 @@ void draw_points2(MDOpenGL &mdopengl, Timestep *timestep) {
         double dr2 = dx*dx + dy*dy + dz*dz;
         if(dr2>dr2_max) continue;
 
-        double color_factor = max( (1-dr2/dr2_max),0.1);
+        double color_factor = max( (1-dr2/color_cutoff),0.2);
         
         // Step 1
         glBindBuffer(GL_ARRAY_BUFFER, spheres_vertices_gpu[atom_type]);
@@ -281,37 +297,7 @@ void draw_points2(MDOpenGL &mdopengl, Timestep *timestep) {
     sphere_shader.End();
 }
 
-void draw_points(Mts0_io *mts0_io, Timestep *timestep) {
-    vector<vector<float> > &positions = timestep->positions;
-    vector<int> &atom_types = timestep->atom_types;
-    
-    glPointSize(2.0f);
-    glBegin(GL_POINTS);
-    for(int n=0;n<positions.size(); n++) {
-        int atom_type = atom_types[n];
-        // if(atom_type == H_TYPE || atom_type == O_TYPE) continue;
-        glColor4f(colors[atom_type][0],colors[atom_type][1],colors[atom_type][2],1.0);
-        glVertex3f(positions[n][0],positions[n][1],positions[n][2]);
-    }
-    glEnd();
-}
-
-bool game_mode = false;
-vector<int> atom_ids_taken;
-int number_of_na;
-int number_of_cl;
-int caught_na_ions = 0;
-int caught_cl_ions = 0;
-double t0 = time(NULL);
-
-void restart() {
-    atom_ids_taken.clear();
-    caught_na_ions = 0;
-    caught_cl_ions = 0;
-    t0 = time(NULL);
-}
-
-void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
+void draw_spheres_2(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
     vector<vector<float> > &positions = timestep->positions;
     vector<int> &atom_types = timestep->atom_types;
     vector<int> &atom_ids = timestep->atom_ids;
@@ -321,9 +307,11 @@ void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
 
     sphere_shader.Start();
     double one_over_dr2_max = 1.0/dr2_max;
-    double color_min = 100000;
+    
     for(int n=0;n<positions.size(); n++) {
         int atom_type = atom_types[n];
+
+        if( (atom_type == H_TYPE || atom_type == O_TYPE) && !draw_water) continue;
         
         int atom_id = atom_ids[n];
         double dx = positions[n][0]-cam_x;
@@ -332,9 +320,8 @@ void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
 
         double dr2 = dx*dx + dy*dy + dz*dz;
         double dr2_times_one_over_dr2_max = dr2*one_over_dr2_max;
-        double color_factor = max( (1-dr2/2000),0.2);
-        if(color_min>color_factor) color_min = color_factor;
-
+        double color_factor = max( (1-dr2/color_cutoff),0.2);
+        
         if(dr2<dr2_max) {
             // double size_factor = 1.0 - dr2_times_one_over_dr2_max;
             double size_factor = 0.5;
@@ -383,27 +370,28 @@ void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
             glTranslatef(positions[n][0],positions[n][1],positions[n][2]);
             sphere_shader.set_light_pos(-dx,-dy,-dz);
             sphere_shader.set_color(color_factor*colors[atom_type][0],color_factor*colors[atom_type][1],color_factor*colors[atom_type][2]);
-            int quality = max( (15 - 10*dr2_times_one_over_dr2_max),1.0);
+            int quality = max( (10 - 10*dr2_times_one_over_dr2_max),1.0);
             glutSolidSphere(size_factor*visual_atom_radii[atom_type],quality,quality);
             glPopMatrix();
         }
     }
     sphere_shader.End();
+}
+
+void draw_points_1(Mts0_io *mts0_io, Timestep *timestep) {
+    vector<vector<float> > &positions = timestep->positions;
+    vector<int> &atom_types = timestep->atom_types;
     
-    // for(int n=0;n<positions.size(); n++) {
-    //     int atom_type = atom_types[n];
-    //     if(atom_type == H_TYPE || atom_type == O_TYPE) continue;
-    //     double dx = positions[n][0]-cam_x;
-    //     double dy = positions[n][1]-cam_y;
-    //     double dz = positions[n][2]-cam_z;
-    //     double dr2 = dx*dx + dy*dy + dz*dz;
-    //     if(dr2>=dr2_max) {
-    //         glBegin(GL_POINTS);
-    //         glColor4f(colors[atom_type][0],colors[atom_type][1],colors[atom_type][2],1.0);
-    //         glVertex3f(positions[n][0],positions[n][1],positions[n][2]);
-    //         glEnd();
-    //     }
-    // }
+    glPointSize(2.0f);
+    glBegin(GL_POINTS);
+    for(int n=0;n<positions.size(); n++) {
+        int atom_type = atom_types[n];
+        if( (atom_type == H_TYPE || atom_type == O_TYPE) && !draw_water) continue;
+        
+        glColor4f(colors[atom_type][0],colors[atom_type][1],colors[atom_type][2],1.0);
+        glVertex3f(positions[n][0],positions[n][1],positions[n][2]);
+    }
+    glEnd();
 }
  
 // Function to draw our scene
@@ -424,10 +412,12 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
     // to this position!
     glTranslatef( -mdopengl.cam->getXPos(), -mdopengl.cam->getYPos(), -mdopengl.cam->getZPos() );
 
-    // if(draw_mode==1) draw_points(mts0_io,timestep);
-    // else if(draw_mode==2) draw_spheres(mts0_io,mdopengl,timestep);
-    draw_points2(mdopengl, timestep);
-    // draw_spheres3(timestep);
+    if(draw_mode==1) draw_points_1(mts0_io,timestep);
+    else if(draw_mode==2) draw_spheres_2(mts0_io,mdopengl,timestep);
+    else if(draw_mode==3) draw_spheres_3(mdopengl, timestep);
+    // else if(draw_mode==4) draw_spheres_4(timestep);
+
+    // draw_spheres_3(mdopengl, timestep);
  
     // ----- Stop Drawing Stuff! ------
  
@@ -482,6 +472,12 @@ void handle_keypress(int theKey, int theAction) {
         case '2':
             draw_mode = 2;
             break;
+        case '3':
+            draw_mode = 3;
+            break;
+        case '4':
+            draw_mode = 4;
+            break;
         default:
             // Do nothing...
             break;
@@ -528,6 +524,9 @@ int main(int argc, char **argv)
     game_mode = ini.getbool("game_mode");
     string foldername_base = ini.getstring("foldername_base");
     dr2_max = ini.getdouble("dr2_max");
+    color_cutoff = ini.getdouble("color_cutoff");
+    double dt = ini.getdouble("dt");
+    
     bool remove_water = ini.getbool("remove_water");
 
     Mts0_io *mts0_io = new Mts0_io(nx,ny,nz,max_timestep, foldername_base, preload, remove_water);
@@ -543,8 +542,8 @@ int main(int argc, char **argv)
     number_of_cl = number_of_atoms_of_each_type[CL_TYPE];
     cout << "There are " << number_of_na << " na ions and " << number_of_cl << " cl ions. Gotta catch'em all!" << endl;
 
-    prepare_spheres();
-    // prepare_spheres2(current_timestep_object);
+    prepare_spheres_for_atom_types();
+    // prepare_spheres_for_each_atom(current_timestep_object);
     char *title = new char[1000];
     while (running)
     {
@@ -563,7 +562,9 @@ int main(int argc, char **argv)
         double deltaTime = mdopengl.fps_manager.enforceFPS();
         double fps = mdopengl.fps_manager.average_fps;
         // cout << "FPS: " << fps << endl;
-        sprintf(title, "Molecular Dynamics Visualizer (MDV) - timestep %d (%.2f fps)",mts0_io->current_timestep, fps);
+        double t_in_ps = mts0_io->current_timestep*dt/1000;
+
+        sprintf(title, "Molecular Dynamics Visualizer (MDV) - [%.2f fps] - t = %.2f ps (timestep %d)",fps, t_in_ps, mts0_io->current_timestep);
         mdopengl.set_window_title(string(title));
     }
  
