@@ -57,7 +57,6 @@ public:
 class Mts0_io {
 private:
   char mts0_directory[5000];
-  int current_timestep;
   int max_timestep;
   bool preload;
   vector<Timestep*> timesteps;
@@ -66,6 +65,7 @@ private:
 public:
   bool remove_water;
   bool remove_silica;
+  int current_timestep;
   vector<float> system_size;
 	int nx, ny, nz;
   Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, bool remove_water_);

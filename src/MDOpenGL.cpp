@@ -58,6 +58,7 @@ void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmousepos
 void MDOpenGL::set_window_title(string window_title_) {
   window_title = window_title_;
   glfwSetWindowTitle(window_title.c_str());
+  glfwPollEvents();
 }
 
 void MDOpenGL::init_GL() {

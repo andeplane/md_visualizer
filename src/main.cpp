@@ -25,13 +25,14 @@
 using std::string;
 using std::cout;
 using std::endl;
- 
-double colors[7][3] = {{1,1,1},{230.0/255,230.0/255,0},{0,0,1},{1.0,1.0,1.0},{1,0,0},{9.0/255,92.0/255,0},{12.0/255,240.0/255}};
+                    // Not Av   Si                      Si-O       H            O      Na                   Cl     X
+double colors[7][3] = {{1,1,1},{230.0/255,230.0/255,0},{0,0,1},{1.0,1.0,1.0},{1,0,0},{9.0/255,92.0/255,0},{95.0/255,216.0/255,250.0/255}};
 double visual_atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 1.86, 1.02};
 double hit_atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 2*1.86, 2*1.02};
 
 bool stop_loading = true;
 int draw_mode = 2;
+bool draw_water = true;
 
 MDSphereShader sphere_shader;
 // Data
@@ -44,7 +45,7 @@ int points_2 = 10;
 int num_indices = 2*points_1*points_2;
 
 void prepare_spheres() {
-    double size_factor = 0.7;
+    double size_factor = 0.5;
     GLfloat *vertices = new GLfloat[6*num_indices];
     GLuint *indices = new GLuint[num_indices];
     spheres_vertices_gpu = new GLuint[7];
@@ -57,17 +58,17 @@ void prepare_spheres() {
 
         for(int i = 0; i < points_1; i++)
         {
-            double theta = M_PI * (-0.5 + (double) (i - 1) / points_1);
+            double theta = M_PI * (-0.5 + (double) (i - 1) / (points_1-1));
             double z0  = size_factor*radius*sin(theta);
             double zr0 =  size_factor*radius*cos(theta);
 
-            double theta_2 = M_PI * (-0.5 + (double) i / points_1);
+            double theta_2 = M_PI * (-0.5 + (double) i / (points_1-1));
             double z1 = size_factor*radius*sin(theta_2);
             double zr1 = size_factor*radius*cos(theta_2);
 
             for(int j = 0; j < points_2; j++)
             {
-                double phi = 2 * M_PI * (double) (j - 1) / points_2;
+                double phi = 2 * M_PI * (double) (j - 1) / (points_2-1);
                 double x = cos(phi);
                 double y = sin(phi);
 
@@ -238,13 +239,18 @@ void draw_points2(MDOpenGL &mdopengl, Timestep *timestep) {
 
     for(int n=0;n<positions.size(); n++) {
         int atom_type = atom_types[n];
+        if( (atom_type == H_TYPE || atom_type == O_TYPE) && !draw_water) continue;
         double dx = positions[n][0]-cam_x;
         double dy = positions[n][1]-cam_y;
         double dz = positions[n][2]-cam_z;
+        double cam_target_times_dr = dx*mdopengl.cam->target[0] + dy*mdopengl.cam->target[1] + dz*mdopengl.cam->target[2];
+        
+        if(cam_target_times_dr < 0) continue;
+
         double dr2 = dx*dx + dy*dy + dz*dz;
         if(dr2>dr2_max) continue;
 
-        double color_factor = max( (1-dr2/10000),0.2);
+        double color_factor = max( (1-dr2/dr2_max),0.1);
         
         // Step 1
         glBindBuffer(GL_ARRAY_BUFFER, spheres_vertices_gpu[atom_type]);
@@ -323,6 +329,7 @@ void draw_spheres(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
         double dx = positions[n][0]-cam_x;
         double dy = positions[n][1]-cam_y;
         double dz = positions[n][2]-cam_z;
+
         double dr2 = dx*dx + dy*dy + dz*dz;
         double dr2_times_one_over_dr2_max = dr2*one_over_dr2_max;
         double color_factor = max( (1-dr2/2000),0.2);
@@ -466,6 +473,9 @@ void handle_keypress(int theKey, int theAction) {
             game_mode = !game_mode;
             cout << "Cheating on me already? Game mode is " << ((game_mode) ? "on." : "off.") << endl;
             break;
+        case 'R':
+            draw_water = !draw_water;
+            break;
         case '1':
             draw_mode = 1;
             break;
@@ -535,7 +545,7 @@ int main(int argc, char **argv)
 
     prepare_spheres();
     // prepare_spheres2(current_timestep_object);
-    
+    char *title = new char[1000];
     while (running)
     {
         if(!stop_loading) current_timestep_object = mts0_io->get_next_timestep();
@@ -543,7 +553,6 @@ int main(int argc, char **argv)
         // Calculate our camera movement
         mdopengl.cam->move();
  
-        mdopengl.set_window_title(string("Molecular Dynamics Visualizer (MDV) - timestep 0"));
         // Draw our scene
         drawScene(mts0_io,mdopengl,current_timestep_object);
  
@@ -552,7 +561,10 @@ int main(int argc, char **argv)
  
         // Call our fpsManager to limit the FPS and get the frame duration to pass to the cam->move method
         double deltaTime = mdopengl.fps_manager.enforceFPS();
-        // cout << mdopengl.fps_manager.average_fps << endl;
+        double fps = mdopengl.fps_manager.average_fps;
+        // cout << "FPS: " << fps << endl;
+        sprintf(title, "Molecular Dynamics Visualizer (MDV) - timestep %d (%.2f fps)",mts0_io->current_timestep, fps);
+        mdopengl.set_window_title(string(title));
     }
  
     // Clean up GLFW and exit
