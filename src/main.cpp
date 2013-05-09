@@ -26,7 +26,7 @@ using std::string;
 using std::cout;
 using std::endl;
  
-double colors[7][3] = {{1,1,1},{230.0/255,230.0/255,0},{0,0,1},{1,1,1},{1,0,0},{9.0/255,92.0/255,0},{12.0/255,240.0/255}};
+double colors[7][3] = {{1,1,1},{230.0/255,230.0/255,0},{0,0,1},{1.0,1.0,1.0},{1,0,0},{9.0/255,92.0/255,0},{12.0/255,240.0/255}};
 double visual_atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 1.86, 1.02};
 double hit_atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 2*1.86, 2*1.02};
 
@@ -35,87 +35,167 @@ int draw_mode = 2;
 
 MDSphereShader sphere_shader;
 // Data
-GLuint geometry_array = 0;
-GLuint indices_array = 0;
+GLuint *spheres_vertices_gpu = 0;
+GLuint *indices_gpu = 0;
+GLuint all_spheres_vertices_gpu = 0;
+GLuint all_indices_gpu = 0;
 int points_1 = 10;
 int points_2 = 10;
 int num_indices = 2*points_1*points_2;
 
-void prepare() {
-    GLfloat *geometry = new GLfloat[6*num_indices];
+void prepare_spheres() {
+    double size_factor = 0.7;
+    GLfloat *vertices = new GLfloat[6*num_indices];
     GLuint *indices = new GLuint[num_indices];
+    spheres_vertices_gpu = new GLuint[7];
+    indices_gpu = new GLuint[7];
 
-    // for(int i=0;i<num_indices;i++) {
-    //     geometry[3*i+0] = 100*(double)rand()/RAND_MAX;
-    //     geometry[3*i+1] = 100*(double)rand()/RAND_MAX;
-    //     geometry[3*i+2] = 100*(double)rand()/RAND_MAX;
-        
-    //     indices[i] = i;
-    // }
+    for(int atom_type = 1; atom_type < 7; atom_type++) {
+        double radius = visual_atom_radii[atom_type];
+        int count = 0;
+        int index = 0;
+
+        for(int i = 0; i < points_1; i++)
+        {
+            double theta = M_PI * (-0.5 + (double) (i - 1) / points_1);
+            double z0  = size_factor*radius*sin(theta);
+            double zr0 =  size_factor*radius*cos(theta);
+
+            double theta_2 = M_PI * (-0.5 + (double) i / points_1);
+            double z1 = size_factor*radius*sin(theta_2);
+            double zr1 = size_factor*radius*cos(theta_2);
+
+            for(int j = 0; j < points_2; j++)
+            {
+                double phi = 2 * M_PI * (double) (j - 1) / points_2;
+                double x = cos(phi);
+                double y = sin(phi);
+
+                vertices[count++] = (x * zr0); //X
+                vertices[count++] = (y * zr0); //Y
+                vertices[count++] = (z0);      //Z
+                
+                CVector normal((x * zr0), (y * zr0), (z0));
+                normal = normal.Normalize();
+
+                vertices[count++] = normal.x;
+                vertices[count++] = normal.y;
+                vertices[count++] = normal.z;
+
+                indices[index] = index++;
+                vertices[count++] = (x * zr1); //X
+                vertices[count++] = (y * zr1); //Y
+                vertices[count++] = (z1);      //Z
+
+                normal = CVector((x * zr1), (y * zr1), (z1));
+                normal = normal.Normalize();
+
+                vertices[count++] = normal.x;
+                vertices[count++] = normal.y;
+                vertices[count++] = normal.z;
+
+                indices[index] = index++;
+            }
+        }
+
+        glGenBuffers(1, &spheres_vertices_gpu[atom_type]);
+        glBindBuffer(GL_ARRAY_BUFFER, spheres_vertices_gpu[atom_type]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*6*num_indices, NULL, GL_DYNAMIC_DRAW);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat)*6*num_indices, vertices);
+
+        glGenBuffers(1, &indices_gpu[atom_type]);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_gpu[atom_type]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*num_indices, NULL, GL_STATIC_DRAW);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLuint)*num_indices, indices);
+    }
+}
+
+void prepare_spheres2(Timestep *timestep) {
+    vector<vector<float> > &positions = timestep->positions;
+    vector<int> &atom_types = timestep->atom_types;
+
+    double size_factor = 0.8;
+    int num_atoms = positions.size();
+
+    num_indices *= num_atoms;
+
+    GLfloat *vertices = new GLfloat[6*num_indices];
+    GLuint *indices = new GLuint[num_indices];
     int count = 0;
     int index = 0;
-    for(int i = 0; i < points_1; i++)
-    {
-        double lat0 = M_PI * (-0.5 + (double) (i - 1) / points_1);
-        double z0  = sin(lat0);
-        double zr0 =  cos(lat0);
-
-        double lat1 = M_PI * (-0.5 + (double) i / points_1);
-        double z1 = sin(lat1);
-        double zr1 = cos(lat1);
-
-        for(int j = 0; j < points_2; j++)
+    
+    for(int n=0;n<positions.size(); n++) {
+        int atom_type = atom_types[n];
+        double radius = visual_atom_radii[atom_type];
+        double atom_position_x = positions[n][0];
+        double atom_position_y = positions[n][1];
+        double atom_position_z = positions[n][2];
+        
+        for(int i = 0; i < points_1; i++)
         {
-            double lng = 2 * M_PI * (double) (j - 1) / points_2;
-            double x = cos(lng);
-            double y = sin(lng);
+            double theta = M_PI * (-0.5 + (double) (i - 1) / points_1);
+            double z0  = size_factor*sin(theta);
+            double zr0 =  size_factor*cos(theta);
 
-            geometry[count++] = (x * zr0); //X
-            geometry[count++] = (y * zr0); //Y
-            geometry[count++] = (z0);      //Z
-            
-            CVector normal((x * zr0), (y * zr0), (z0));
-            normal.Normalize();
+            double theta_2 = M_PI * (-0.5 + (double) i / points_1);
+            double z1 = size_factor*sin(theta_2);
+            double zr1 = size_factor*cos(theta_2);
 
-            geometry[count++] = normal.x;
-            geometry[count++] = normal.y;
-            geometry[count++] = normal.z;
+            for(int j = 0; j < points_2; j++)
+            {
+                double phi = 2 * M_PI * (double) (j - 1) / points_2;
+                double x = cos(phi);
+                double y = sin(phi);
 
-            indices[index] = index++;
-            geometry[count++] = (x * zr1); //X
-            geometry[count++] = (y * zr1); //Y
-            geometry[count++] = (z1);      //Z
+                vertices[count++] = (x * zr0) + atom_position_x; //X
+                vertices[count++] = (y * zr0) + atom_position_y; //Y
+                vertices[count++] = (z0)      + atom_position_z;      //Z
+                
+                CVector normal((x * zr0), (y * zr0), (z0));
+                normal.Normalize();
 
-            normal = CVector((x * zr1), (y * zr1), (z1));
-            normal.Normalize();
+                vertices[count++] = normal.x;
+                vertices[count++] = normal.y;
+                vertices[count++] = normal.z;
 
-            geometry[count++] = normal.x;
-            geometry[count++] = normal.y;
-            geometry[count++] = normal.z;
+                indices[index] = index++;
+                vertices[count++] = (x * zr1)+ atom_position_x; //X
+                vertices[count++] = (y * zr1)+ atom_position_y; //Y
+                vertices[count++] = (z1)     + atom_position_z;  //Z
 
-            indices[index] = index++;
+                normal = CVector((x * zr1), (y * zr1), (z1));
+                normal.Normalize();
+
+                vertices[count++] = normal.x;
+                vertices[count++] = normal.y;
+                vertices[count++] = normal.z;
+
+                indices[index] = index++;
+            }
         }
     }
 
-    glGenBuffers(1, &geometry_array);
-    glBindBuffer(GL_ARRAY_BUFFER, geometry_array);
+    glGenBuffers(1, &all_spheres_vertices_gpu);
+    glBindBuffer(GL_ARRAY_BUFFER, all_spheres_vertices_gpu);
     glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*6*num_indices, NULL, GL_DYNAMIC_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat)*6*num_indices, geometry);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat)*6*num_indices, vertices);
 
-    glGenBuffers(1, &indices_array);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_array);
+    glGenBuffers(1, &all_indices_gpu);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, all_indices_gpu);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*num_indices, NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLuint)*num_indices, indices);
+
+    glGenBuffers(1, &all_indices_gpu);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, all_indices_gpu);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*num_indices, NULL, GL_STATIC_DRAW);
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLuint)*num_indices, indices);
 }
 
-void draw_points2(Mts0_io *mts0_io, Timestep *timestep) {
+double dr2_max = 3500;
 
+void draw_spheres3(Timestep *timestep) {
     sphere_shader.Start();
-    sphere_shader.set_color(100.0,100.0,0.0);
-    //Render
-    // Step 1
-    glBindBuffer(GL_ARRAY_BUFFER, geometry_array);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_array);
+    
 
     // Step 2
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -124,13 +204,74 @@ void draw_points2(Mts0_io *mts0_io, Timestep *timestep) {
     // Step 3
     glVertexPointer(3, GL_FLOAT, 6*sizeof(GLfloat), NULL);
     glNormalPointer(GL_FLOAT, 6*sizeof(GLfloat), (float*)(3*sizeof(GLfloat)));
-
+    
     // Step 4
-    glDrawElements(GL_TRIANGLE_STRIP, num_indices, GL_UNSIGNED_INT, NULL);
-
-    // Step 5
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, all_indices_gpu);
+    glBindBuffer(GL_ARRAY_BUFFER, all_spheres_vertices_gpu);
+    
+    // Step 5    
+    int num_vertices_per_sphere = points_1*points_2;
+    vector<int> &atom_types = timestep->atom_types;
+    for(int n=0; n<timestep->positions.size(); n++) {
+        int atom_type = atom_types[n];
+        sphere_shader.set_color(colors[atom_type][0],colors[atom_type][1],colors[atom_type][2]);
+        glDrawElements(GL_TRIANGLE_STRIP, num_vertices_per_sphere, GL_UNSIGNED_INT, (float*)(n*num_vertices_per_sphere*sizeof(GLfloat)));
+    }
+    
+        
+    // Step 6
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
+    
+    sphere_shader.End();
+}
+
+void draw_points2(MDOpenGL &mdopengl, Timestep *timestep) {
+    sphere_shader.Start();
+
+    vector<vector<float> > &positions = timestep->positions;
+    vector<int> &atom_types = timestep->atom_types;
+
+    double cam_x = mdopengl.cam->getXPos();
+    double cam_y = mdopengl.cam->getYPos();
+    double cam_z = mdopengl.cam->getZPos();
+
+    for(int n=0;n<positions.size(); n++) {
+        int atom_type = atom_types[n];
+        double dx = positions[n][0]-cam_x;
+        double dy = positions[n][1]-cam_y;
+        double dz = positions[n][2]-cam_z;
+        double dr2 = dx*dx + dy*dy + dz*dz;
+        if(dr2>dr2_max) continue;
+
+        double color_factor = max( (1-dr2/10000),0.2);
+        
+        // Step 1
+        glBindBuffer(GL_ARRAY_BUFFER, spheres_vertices_gpu[atom_type]);
+        // Step 2
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+
+        // Step 3
+        glVertexPointer(3, GL_FLOAT, 6*sizeof(GLfloat), NULL);
+        glNormalPointer(GL_FLOAT, 6*sizeof(GLfloat), (float*)(3*sizeof(GLfloat)));
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_gpu[1]);
+        
+
+        glPushMatrix();
+        glTranslatef(positions[n][0],positions[n][1],positions[n][2]);
+        sphere_shader.set_light_pos(-dx,-dy,-dz);
+        sphere_shader.set_color(color_factor*colors[atom_type][0],color_factor*colors[atom_type][1],color_factor*colors[atom_type][2]);
+        
+        // glDrawElements(GL_POINTS, num_indices, GL_UNSIGNED_INT, NULL);
+        glDrawElements(GL_TRIANGLE_STRIP, num_indices, GL_UNSIGNED_INT, NULL);
+        
+        glPopMatrix();
+        // Step 5
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+    }
+    
     sphere_shader.End();
 }
 
@@ -156,7 +297,6 @@ int number_of_cl;
 int caught_na_ions = 0;
 int caught_cl_ions = 0;
 double t0 = time(NULL);
-double dr2_max = 3500;
 
 void restart() {
     atom_ids_taken.clear();
@@ -277,9 +417,10 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
     // to this position!
     glTranslatef( -mdopengl.cam->getXPos(), -mdopengl.cam->getYPos(), -mdopengl.cam->getZPos() );
 
-    if(draw_mode==1) draw_points(mts0_io,timestep);
-    else if(draw_mode==2) draw_spheres(mts0_io,mdopengl,timestep);
-    // draw_points2(mts0_io, timestep);
+    // if(draw_mode==1) draw_points(mts0_io,timestep);
+    // else if(draw_mode==2) draw_spheres(mts0_io,mdopengl,timestep);
+    draw_points2(mdopengl, timestep);
+    // draw_spheres3(timestep);
  
     // ----- Stop Drawing Stuff! ------
  
@@ -377,10 +518,10 @@ int main(int argc, char **argv)
     game_mode = ini.getbool("game_mode");
     string foldername_base = ini.getstring("foldername_base");
     dr2_max = ini.getdouble("dr2_max");
-    
-    Mts0_io *mts0_io = new Mts0_io(nx,ny,nz,max_timestep, foldername_base, preload);
-    mts0_io->remove_water = ini.getdouble("remove_water");
+    bool remove_water = ini.getbool("remove_water");
 
+    Mts0_io *mts0_io = new Mts0_io(nx,ny,nz,max_timestep, foldername_base, preload, remove_water);
+    
     mdopengl.initialize(ini.getint("screen_width"),ini.getint("screen_height"), handle_keypress, handle_mouse_move);
     GLenum err = glewInit();
 
@@ -392,7 +533,8 @@ int main(int argc, char **argv)
     number_of_cl = number_of_atoms_of_each_type[CL_TYPE];
     cout << "There are " << number_of_na << " na ions and " << number_of_cl << " cl ions. Gotta catch'em all!" << endl;
 
-    prepare();
+    prepare_spheres();
+    // prepare_spheres2(current_timestep_object);
     
     while (running)
     {

@@ -68,7 +68,7 @@ public:
   bool remove_silica;
   vector<float> system_size;
 	int nx, ny, nz;
-  Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_);
+  Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, bool remove_water_);
   Timestep *get_next_timestep();
 
   void load_timesteps();

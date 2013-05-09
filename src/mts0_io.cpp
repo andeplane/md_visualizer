@@ -6,7 +6,6 @@ Timestep::Timestep(string mts0_directory,int nx_, int ny_, int nz_) {
 	ny = ny_;
 	nz = nz_;
 	load_atoms(mts0_directory);
-	remove_water();
 }
 
 Timestep::~Timestep() {
@@ -27,7 +26,8 @@ vector<int> Timestep::get_number_of_atoms_of_each_type() {
 	return number_of_atoms_of_each_type;
 }
 
-Mts0_io::Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_) {
+Mts0_io::Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, bool remove_water_) {
+	remove_water = remove_water_;
 	nx = nx_;
 	ny = ny_;
 	nz = nz_;
