@@ -31,7 +31,7 @@ double visual_atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 1.86, 1.02};
 double hit_atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 2*1.86, 2*1.02};
 
 bool stop_loading = true;
-int draw_mode = 2;
+int draw_mode = 3;
 bool draw_water = true;
 
 MDSphereShader sphere_shader;
@@ -126,121 +126,6 @@ void prepare_spheres_for_atom_types() {
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*num_indices, NULL, GL_STATIC_DRAW);
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLuint)*num_indices, indices);
     }
-}
-
-void prepare_spheres_for_each_atom(Timestep *timestep) {
-    vector<vector<float> > &positions = timestep->positions;
-    vector<int> &atom_types = timestep->atom_types;
-
-    double size_factor = 0.8;
-    int num_atoms = positions.size();
-
-    num_indices *= num_atoms;
-
-    GLfloat *vertices = new GLfloat[6*num_indices];
-    GLuint *indices = new GLuint[num_indices];
-    int count = 0;
-    int index = 0;
-    
-    for(int n=0;n<positions.size(); n++) {
-        int atom_type = atom_types[n];
-        double radius = visual_atom_radii[atom_type];
-        double atom_position_x = positions[n][0];
-        double atom_position_y = positions[n][1];
-        double atom_position_z = positions[n][2];
-        
-        for(int i = 0; i < points_1; i++)
-        {
-            double theta = M_PI * (-0.5 + (double) (i - 1) / points_1);
-            double z0  = size_factor*sin(theta);
-            double zr0 =  size_factor*cos(theta);
-
-            double theta_2 = M_PI * (-0.5 + (double) i / points_1);
-            double z1 = size_factor*sin(theta_2);
-            double zr1 = size_factor*cos(theta_2);
-
-            for(int j = 0; j < points_2; j++)
-            {
-                double phi = 2 * M_PI * (double) (j - 1) / points_2;
-                double x = cos(phi);
-                double y = sin(phi);
-
-                vertices[count++] = (x * zr0) + atom_position_x; //X
-                vertices[count++] = (y * zr0) + atom_position_y; //Y
-                vertices[count++] = (z0)      + atom_position_z;      //Z
-                
-                CVector normal((x * zr0), (y * zr0), (z0));
-                normal.Normalize();
-
-                vertices[count++] = normal.x;
-                vertices[count++] = normal.y;
-                vertices[count++] = normal.z;
-
-                indices[index] = index++;
-                vertices[count++] = (x * zr1)+ atom_position_x; //X
-                vertices[count++] = (y * zr1)+ atom_position_y; //Y
-                vertices[count++] = (z1)     + atom_position_z;  //Z
-
-                normal = CVector((x * zr1), (y * zr1), (z1));
-                normal.Normalize();
-
-                vertices[count++] = normal.x;
-                vertices[count++] = normal.y;
-                vertices[count++] = normal.z;
-
-                indices[index] = index++;
-            }
-        }
-    }
-
-    glGenBuffers(1, &all_spheres_vertices_gpu);
-    glBindBuffer(GL_ARRAY_BUFFER, all_spheres_vertices_gpu);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*6*num_indices, NULL, GL_DYNAMIC_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat)*6*num_indices, vertices);
-
-    glGenBuffers(1, &all_indices_gpu);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, all_indices_gpu);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*num_indices, NULL, GL_STATIC_DRAW);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLuint)*num_indices, indices);
-
-    glGenBuffers(1, &all_indices_gpu);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, all_indices_gpu);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*num_indices, NULL, GL_STATIC_DRAW);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLuint)*num_indices, indices);
-}
-
-void draw_spheres_4(Timestep *timestep) {
-    // This method will draw all spheres that are already on the GPU.
-    // We won't need any glTranslate3f here, all positions are absolute.
-    sphere_shader.Start();
-
-    // Step 2
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-
-    // Step 3
-    glVertexPointer(3, GL_FLOAT, 6*sizeof(GLfloat), NULL);
-    glNormalPointer(GL_FLOAT, 6*sizeof(GLfloat), (float*)(3*sizeof(GLfloat)));
-    
-    // Step 4
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, all_indices_gpu);
-    glBindBuffer(GL_ARRAY_BUFFER, all_spheres_vertices_gpu);
-    
-    // Step 5    
-    int num_vertices_per_sphere = points_1*points_2;
-    vector<int> &atom_types = timestep->atom_types;
-    for(int n=0; n<timestep->positions.size(); n++) {
-        int atom_type = atom_types[n];
-        sphere_shader.set_color(colors[atom_type][0],colors[atom_type][1],colors[atom_type][2]);
-        glDrawElements(GL_TRIANGLE_STRIP, num_vertices_per_sphere, GL_UNSIGNED_INT, (float*)(n*num_vertices_per_sphere*sizeof(GLfloat)));
-    }
-    
-        
-    // Step 6
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    
-    sphere_shader.End();
 }
 
 void draw_spheres_3(MDOpenGL &mdopengl, Timestep *timestep) {
@@ -415,10 +300,7 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
     if(draw_mode==1) draw_points_1(mts0_io,timestep);
     else if(draw_mode==2) draw_spheres_2(mts0_io,mdopengl,timestep);
     else if(draw_mode==3) draw_spheres_3(mdopengl, timestep);
-    // else if(draw_mode==4) draw_spheres_4(timestep);
-
-    // draw_spheres_3(mdopengl, timestep);
- 
+    
     // ----- Stop Drawing Stuff! ------
  
     glfwSwapBuffers(); // Swap the buffers to display the scene (so we don't have to watch it being drawn!)
@@ -543,7 +425,6 @@ int main(int argc, char **argv)
     cout << "There are " << number_of_na << " na ions and " << number_of_cl << " cl ions. Gotta catch'em all!" << endl;
 
     prepare_spheres_for_atom_types();
-    // prepare_spheres_for_each_atom(current_timestep_object);
     char *title = new char[1000];
     while (running)
     {
