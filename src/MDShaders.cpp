@@ -27,7 +27,6 @@ void MDSphereShader::End() {
 MDSphereShader::MDSphereShader() {
   vert = string(
   	"uniform vec3 lightpos; \n"
-  	"uniform vec3 targetdir; \n"
 	"varying vec3 normal; \n"
 	"varying vec3 myPos; \n"
 	"void main(void) \n"
@@ -45,7 +44,8 @@ MDSphereShader::MDSphereShader() {
 	"uniform vec4 color; \n"
 	"void main(void)\n"
 	"{\n "
-	"  float light = clamp(dot(normalize(lightpos), normal), 0.1, 1.0);"
+	"  float shininess = 2.0; \n"
+	"  float light = pow(clamp(dot(normalize(lightpos), normal), 0.1, 1.0),shininess); \n"
 	"  gl_FragColor = color*light; \n"
 	"  gl_FragColor.w = 1.0;"
 	"}\n");

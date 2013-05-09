@@ -292,6 +292,7 @@ void Mts0_io::load_timesteps() {
 	for(int timestep=0;timestep<=max_timestep;timestep++) {
 		sprintf(mts0_directory, "%s/%06d/mts0/",foldername_base.c_str(), timestep);
 		Timestep *new_timestep = new Timestep(string(mts0_directory),nx, ny, nz);
+		if(remove_water) new_timestep->remove_water();
 		timesteps.push_back(new_timestep);
 		cout << "Loaded timestep " << timestep << endl;
 	}
@@ -306,6 +307,7 @@ Timestep *Mts0_io::get_next_timestep() {
 	} else {
 		sprintf(mts0_directory, "%s/%06d/mts0/",foldername_base.c_str(), current_timestep);
 		Timestep *timestep = new Timestep(string(mts0_directory),nx, ny, nz);
+		if(remove_water) timestep->remove_water();
 		system_size = timestep->get_lx_ly_lz();
 		return timestep;
 	}

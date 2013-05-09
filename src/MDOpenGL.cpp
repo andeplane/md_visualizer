@@ -15,7 +15,7 @@ void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmousepos
     mid_window_y = window_height/2;
     aspect_ratio = (GLfloat)w/GLfloat(h);
 
-    field_of_view = 60.0f;            // Define our field of view (i.e. how quickly foreshortening occurs)
+    field_of_view = 40.0f;            // Define our field of view (i.e. how quickly foreshortening occurs)
     near        = 2.0f;             // The near (Z Axis) point of our viewing frustum (default 2.0f)
     far         = 1500.0f;          // The far  (Z Axis) point of our viewing frustum (default 1500.0f)
 
