@@ -433,7 +433,7 @@ int main(int argc, char **argv)
 
     prepare_spheres_for_atom_types();
     char *title = new char[1000];
-    texture.create_sphere("sphere", 100,1.0, false, 1.0);
+    texture.create_sphere("sphere", 1000,1.0, false, 1.0);
     
     while (running)
     {
