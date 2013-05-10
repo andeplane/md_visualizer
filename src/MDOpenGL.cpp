@@ -1,5 +1,6 @@
 #include <MDOpenGL.h>
 #include <CMath.h>
+#include <CVector.h>
 
 // Frame counter and window settings variables
 int redBits    = 8, greenBits = 8,    blueBits    = 8;
@@ -156,4 +157,23 @@ void MDOpenGL::buffer2texture(GLuint texture, int w, int h, int type) {
   }
  
    glDisable(GL_TEXTURE_2D);
+}
+
+CVector MDOpenGL::coord_to_ray(double px, double py) {
+   double P = field_of_view / 360.0 * 2*3.14159; // convert to radians
+   float pm[16];     // to get viewport matrix
+   CVector res, dir;
+   
+   double x = px + window_width/2;
+   double y = py + window_height/2;
+   // modifiers 
+   double mmx = tan(P*0.5)*(1.0-(x*2)/(double)window_width)* (window_width/(double)window_height);
+   double mmy = tan(P*0.5)*-(1.0-(y*2)/(double)window_height);
+   
+   glGetFloatv(GL_MODELVIEW_MATRIX, pm);
+   // find position in viewspace
+   dir = CVector(mmx,mmy,1);
+   res = (dir.glMatMul(pm)).Normalize();
+   
+   return res;       
 }

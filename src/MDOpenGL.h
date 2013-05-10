@@ -29,6 +29,7 @@ public:
 
     // Create a FPS manager that locks to 60fps and updates the window title with stats every 3 seconds
     FpsManager fps_manager;
+    GLfloat perspective;
     GLfloat field_of_view;
     GLfloat near;
     GLfloat far;
@@ -41,7 +42,6 @@ public:
     void ResetPerspectiveProjection();
     void buffer2texture(GLuint texture, int w, int h, int type);
     void set_window_title(string title);
-    MDOpenGL() {
-        
-    }
+    CVector coord_to_ray(double px, double py);
+    MDOpenGL() { }
 }; 

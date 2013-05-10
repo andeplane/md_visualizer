@@ -22,7 +22,7 @@ FFLAGS = -lglew -lGLFW -framework GLUT -framework OpenGL
 
 PROJECT = main
 
-_obj 	=  main.o mts0_io.o Camera.o MDOpenGL.o CUtil.o CVector.o CMath.o CShaders.o OGLShader.o MDShaders.o
+_obj 	=  main.o mts0_io.o Camera.o MDOpenGL.o CUtil.o CVector.o CMath.o CShaders.o OGLShader.o MDShaders.o CBitMap.o MDTexture.o
 
 obj = $(patsubst %,$(SOURCEDIR)/%,$(_obj))
 

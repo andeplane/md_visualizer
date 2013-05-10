@@ -6,8 +6,8 @@
 #include <GL/glfw.h>      // Include OpenGL Framework library for the GLFW_PRESS constant only!
  
 #include "Vec3.hpp"       // Include our custom Vec3 class
-#include <vector>
-using namespace std;
+#include <CVector.h>
+
 
 class Camera
 {
@@ -42,7 +42,8 @@ class Camera
         bool holdingBackward;
         bool holdingLeftStrafe;
         bool holdingRightStrafe;
-        vector<float> target;
+        CVector target;
+        CVector pos;
  
         // Constructors
         Camera(float windowWidth, float windowHeight);

@@ -9,6 +9,8 @@
 #include <MDShaders.h>
 #include <CIniFile.h>
 #include <time.h>
+#include <CBitMap.h>
+#include <MDTexture.h>
 
 #define SI_TYPE 1
 #define A_TYPE 2
@@ -53,6 +55,7 @@ int caught_cl_ions = 0;
 double t0 = time(NULL);
 double dr2_max = 3500;
 double color_cutoff = 2000;
+MDTexture texture;
 
 void restart() {
     atom_ids_taken.clear();
@@ -144,7 +147,7 @@ void draw_spheres_3(MDOpenGL &mdopengl, Timestep *timestep) {
         double dx = positions[n][0]-cam_x;
         double dy = positions[n][1]-cam_y;
         double dz = positions[n][2]-cam_z;
-        double cam_target_times_dr = dx*mdopengl.cam->target[0] + dy*mdopengl.cam->target[1] + dz*mdopengl.cam->target[2];
+        double cam_target_times_dr = dx*mdopengl.cam->target.x + dy*mdopengl.cam->target.y + dz*mdopengl.cam->target.z;
         
         if(cam_target_times_dr < 0) continue;
 
@@ -186,9 +189,9 @@ void draw_spheres_2(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep) {
     vector<vector<float> > &positions = timestep->positions;
     vector<int> &atom_types = timestep->atom_types;
     vector<int> &atom_ids = timestep->atom_ids;
-    double cam_x = mdopengl.cam->getXPos();
-    double cam_y = mdopengl.cam->getYPos();
-    double cam_z = mdopengl.cam->getZPos();
+    double cam_x = mdopengl.cam->pos.x;
+    double cam_y = mdopengl.cam->pos.y;
+    double cam_z = mdopengl.cam->pos.z;
 
     sphere_shader.Start();
     double one_over_dr2_max = 1.0/dr2_max;
@@ -297,10 +300,14 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
     // to this position!
     glTranslatef( -mdopengl.cam->getXPos(), -mdopengl.cam->getYPos(), -mdopengl.cam->getZPos() );
 
-    if(draw_mode==1) draw_points_1(mts0_io,timestep);
-    else if(draw_mode==2) draw_spheres_2(mts0_io,mdopengl,timestep);
-    else if(draw_mode==3) draw_spheres_3(mdopengl, timestep);
-    
+    vector<vector<float> > &positions = timestep->positions;
+    vector<int> &atom_types = timestep->atom_types;
+    texture.render_billboards(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max);
+
+    // if(draw_mode==1) draw_points_1(mts0_io,timestep);
+    // else if(draw_mode==2) draw_spheres_2(mts0_io,mdopengl,timestep);
+    // else if(draw_mode==3) draw_spheres_3(mdopengl, timestep);
+
     // ----- Stop Drawing Stuff! ------
  
     glfwSwapBuffers(); // Swap the buffers to display the scene (so we don't have to watch it being drawn!)
@@ -426,6 +433,8 @@ int main(int argc, char **argv)
 
     prepare_spheres_for_atom_types();
     char *title = new char[1000];
+    texture.create_sphere("sphere", 100,1.0, false, 1.0);
+    
     while (running)
     {
         if(!stop_loading) current_timestep_object = mts0_io->get_next_timestep();

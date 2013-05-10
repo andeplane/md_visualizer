@@ -1,12 +1,11 @@
 #include <Camera.h>
 #include <GL/glfw.h>      // Include OpenGL Framework library for the GLFW_PRESS constant only!
- 
+
 const double Camera::TO_RADS = 3.141592654 / 180.0; // The value of 1 degree in radians
  
 Camera::Camera(float theWindowWidth, float theWindowHeight)
 {
 	initCamera();
- 	target.resize(3);
 	windowWidth  = theWindowWidth;
 	windowHeight = theWindowHeight;
  
@@ -156,7 +155,10 @@ void Camera::move()
 	// Finally, apply the movement to our position
 	position += movement;
 	
-	target[0] = sinYRot*cosXRot;
-	target[1] = -sinXRot;
-	target[2] = -cosYRot*cosXRot;
+	target.x = sinYRot*cosXRot;
+	target.y = -sinXRot;
+	target.z = -cosYRot*cosXRot;
+	pos.x = position.getX();
+	pos.y = position.getY();
+	pos.z = position.getZ();
 }
