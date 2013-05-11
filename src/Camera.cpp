@@ -52,13 +52,9 @@ const double Camera::toRads(const double &theAngleInDegrees) const
 void Camera::handleMouseMove(int mouseX, int mouseY)
 {
 	// Calculate our horizontal and vertical mouse movement from middle of the window
-	double horizMovement = (mouseX - windowMidX+1) * yawSensitivity;
+	double horizMovement = (mouseX - windowMidX) * yawSensitivity;
 	double vertMovement  = (mouseY - windowMidY) * pitchSensitivity;
- 
-	// std::cout << "Mid window values: " << windowMidX << "\t" << windowMidY << std::endl;
-	// std::cout << "Mouse values     : " << mouseX << "\t" << mouseY << std::endl;
-	// std::cout << horizMovement << "\t" << vertMovement << std::endl << std::endl;
- 
+	
 	// Apply the mouse movement to our rotation vector. The vertical (look up and down)
 	// movement is applied on the X axis, and the horizontal (look left and right)
 	// movement is applied on the Y Axis
@@ -81,14 +77,14 @@ void Camera::handleMouseMove(int mouseX, int mouseY)
 	// and comment out the 0 to 360 code below.
 	//
 	// Looking left and right. Keep the angles in the range -180.0f (anticlockwise turn looking behind) to 180.0f (clockwise turn looking behind)
-	/*if (yRot < -180.0f)
+	/*if (rotation.getY() < -180.0f)
 	{
-	    yRot += 360.0f;
+	    rotation.addY(360.0f);
 	}
  
-	if (yRot > 180.0f)
+	if (rotation.getY() > 180.0f)
 	{
-	    yRot -= 360.0f;
+	    rotation.addY(-360.0f);
 	}*/
  
 	// Looking left and right - keep angles in the range 0.0 to 360.0
