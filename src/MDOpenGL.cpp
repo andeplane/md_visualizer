@@ -6,7 +6,7 @@
 int redBits    = 8, greenBits = 8,    blueBits    = 8;
 int alphaBits  = 8, depthBits = 24,   stencilBits = 0;
 
-void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmouseposfun handle_mouse_move) {
+void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmouseposfun handle_mouse_move, bool full_screen) {
     running = true;
     window_title = "Molecular Dynamics Visualizer (MDV) - timestep 0";
 
@@ -14,7 +14,7 @@ void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmousepos
     window_height = h;
     mid_window_x = window_width/2;
     mid_window_y = window_height/2;
-    aspect_ratio = (GLfloat)w/GLfloat(h);
+    aspect_ratio = (GLfloat)window_width/GLfloat(window_height);
 
     field_of_view = 60.0f;            // Define our field of view (i.e. how quickly foreshortening occurs)
     near        = 2.0f;             // The near (Z Axis) point of our viewing frustum (default 2.0f)
@@ -29,14 +29,38 @@ void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmousepos
     }
 
     // Create a window
-    if( !glfwOpenWindow(window_width, window_height, redBits, greenBits, blueBits, alphaBits, depthBits, stencilBits, GLFW_WINDOW))
-    {
-        std::cout << "Failed to open window!" << std::endl;
-        glfwTerminate();
-        exit(1);
-    }
+    // GLFW_FULLSCREEN / GLFW_WINDOW
+    if(full_screen) {
+        GLFWvidmode desktop;
+        glfwGetDesktopMode( &desktop );
+        window_width = desktop.Width;
+        window_height = desktop.Height;
+        redBits = desktop.RedBits;
+        greenBits = desktop.GreenBits;
+        blueBits = desktop.BlueBits;
 
-    glfwSetWindowPos(0,0);
+        mid_window_x = window_width/2;
+        mid_window_y = window_height/2;
+        aspect_ratio = (GLfloat)window_width/GLfloat(window_height);
+
+        if( !glfwOpenWindow(window_width, window_height, redBits, greenBits, blueBits, alphaBits, depthBits, stencilBits, GLFW_FULLSCREEN))
+        {
+            std::cout << "Failed to open window!" << std::endl;
+            glfwTerminate();
+            exit(1);
+        }
+
+        glfwSetWindowPos(0,0);
+    } else {
+        if( !glfwOpenWindow(window_width, window_height, redBits, greenBits, blueBits, alphaBits, depthBits, stencilBits, GLFW_WINDOW))
+        {
+            std::cout << "Failed to open window!" << std::endl;
+            glfwTerminate();
+            exit(1);
+        }
+
+        glfwSetWindowPos(0,0);
+    }
 
     // Call our initGL function to set up our OpenGL options
     init_GL();
@@ -52,8 +76,6 @@ void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmousepos
 
     // // Specify the function which should execute when the mouse is moved
     glfwSetMousePosCallback(handle_mouse_move);
-
-    CShaderParent::MDOpenGLPointer = this;
 }
 
 void MDOpenGL::set_window_title(string window_title_) {

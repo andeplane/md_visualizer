@@ -5,8 +5,6 @@
 #include <FpsManager.hpp> // Include our FpsManager class
 #include <Vec3.hpp>       // Include our Vec3 class
 #include <string>
-#include <OGLShader.h>
-#include <CShaders.h>
 
 using std::string;
 class MDOpenGL {
@@ -20,10 +18,10 @@ public:
     GLint window_width, window_height; 
     GLint mid_window_x, mid_window_y;
     double aspect_ratio;
+    bool full_screen;
     
     Camera *cam;
-    CShaderContainer shader_container;
-
+    
     // Define our window title to append the FPS stats to
     string window_title;
 
@@ -34,7 +32,7 @@ public:
     GLfloat near;
     GLfloat far;
 
-    void initialize(int w, int h, GLFWkeyfun cbfun, GLFWmouseposfun);
+    void initialize(int w, int h, GLFWkeyfun cbfun, GLFWmouseposfun, bool full_screen);
     void pop();
     void push();
     void init_GL();

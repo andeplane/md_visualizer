@@ -6,7 +6,6 @@
 #include <FpsManager.hpp> // Include our FpsManager class
 #include <Vec3.hpp>       // Include our Vec3 class
 #include <mts0_io.h>
-#include <MDShaders.h>
 #include <CIniFile.h>
 #include <time.h>
 #include <CBitMap.h>
@@ -176,10 +175,11 @@ int main(int argc, char **argv)
     periodic_boundary_conditions = ini.getbool("periodic_boundary_conditions");
     step = ini.getint("step");
     bool remove_water = ini.getbool("remove_water");
+    bool full_screen = ini.getbool("full_screen");
 
     mts0_io = new Mts0_io(nx,ny,nz,max_timestep, foldername_base, preload, remove_water, step);
     
-    mdopengl.initialize(ini.getint("screen_width"),ini.getint("screen_height"), handle_keypress, handle_mouse_move);
+    mdopengl.initialize(ini.getint("screen_width"),ini.getint("screen_height"), handle_keypress, handle_mouse_move, full_screen);
     GLenum err = glewInit();
 
     Timestep *current_timestep_object = mts0_io->get_next_timestep(time_direction);
