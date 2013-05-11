@@ -26,7 +26,8 @@ vector<int> Timestep::get_number_of_atoms_of_each_type() {
 	return number_of_atoms_of_each_type;
 }
 
-Mts0_io::Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, bool remove_water_) {
+Mts0_io::Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, bool remove_water_, int step_) {
+	step = step_;
 	remove_water = remove_water_;
 	nx = nx_;
 	ny = ny_;
@@ -299,8 +300,13 @@ void Mts0_io::load_timesteps() {
 	system_size = timesteps[0]->get_lx_ly_lz();
 }
 
-Timestep *Mts0_io::get_next_timestep() {
-	if(++current_timestep>max_timestep) current_timestep = 0;
+Timestep *Mts0_io::get_next_timestep(int &time_direction) {
+	current_timestep += step*time_direction;
+
+	if(current_timestep>max_timestep || current_timestep < 0) {
+		time_direction *= -1;
+		current_timestep += step*time_direction;
+	}
 
 	if(preload) {
 		return timesteps[current_timestep];

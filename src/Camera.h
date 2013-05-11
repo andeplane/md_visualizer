@@ -58,7 +58,7 @@ class Camera
         const double toRads(const double &angleInDegrees) const;
  
         // Method to move the camera based on the current direction
-        void move();
+        void move(vector<float> system_size, bool periodic_boundary_conditions);
  
         // --------------------------------- Inline methods ----------------------------------------------
  

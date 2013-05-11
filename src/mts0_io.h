@@ -63,13 +63,14 @@ private:
   string foldername_base;
 
 public:
+  int step;
   bool remove_water;
   bool remove_silica;
   int current_timestep;
   vector<float> system_size;
 	int nx, ny, nz;
-  Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, bool remove_water_);
-  Timestep *get_next_timestep();
+  Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, bool remove_water_, int step_);
+  Timestep *get_next_timestep(int &time_direction);
 
   void load_timesteps();
 };

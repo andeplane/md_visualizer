@@ -109,7 +109,7 @@ void Camera::handleMouseMove(int mouseX, int mouseY)
 }
  
 // Function to calculate which direction we need to move the camera and by what amount
-void Camera::move()
+void Camera::move(vector<float> system_size, bool periodic_boundary_conditions)
 {
 	// Vector to break up our movement into components along the X, Y and Z axis
 	Vec3<double> movement;
@@ -161,4 +161,14 @@ void Camera::move()
 	pos.x = position.getX();
 	pos.y = position.getY();
 	pos.z = position.getZ();
+
+	if(periodic_boundary_conditions) {
+		pos.x = fmod(pos.x + system_size[0],(double)system_size[0]);
+		pos.y = fmod(pos.y + system_size[1],(double)system_size[1]);
+		pos.z = fmod(pos.z + system_size[2],(double)system_size[2]);
+
+		position.setX(pos.x);
+		position.setY(pos.y);
+		position.setZ(pos.z);
+	}
 }
