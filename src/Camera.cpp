@@ -154,7 +154,6 @@ void Camera::move(vector<float> system_size, bool periodic_boundary_conditions)
  
 	// Finally, apply the movement to our position
 	position += movement;
-	
 	target.x = sinYRot*cosXRot;
 	target.y = -sinXRot;
 	target.z = -cosYRot*cosXRot;

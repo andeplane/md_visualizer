@@ -39,6 +39,7 @@ double dr2_max = 3500;
 double color_cutoff = 2000;
 MDTexture texture;
 MDOpenGL mdopengl;
+int render_mode = 1;
 bool periodic_boundary_conditions = false;
 int step = 1;
 int time_direction = 1; //-1 to run time backwards
@@ -64,7 +65,8 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
 
     vector<vector<float> > &positions = timestep->positions;
     vector<int> &atom_types = timestep->atom_types;
-    texture.render_billboards(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
+    if(render_mode == 1) texture.render_billboards(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
+    if(render_mode == 2) texture.render_billboards2(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
 
     // ----- Stop Drawing Stuff! ------ 
     glfwSwapBuffers(); // Swap the buffers to display the scene (so we don't have to watch it being drawn!)
@@ -117,6 +119,12 @@ void handle_keypress(int theKey, int theAction) {
             break;
         case 'R':
             draw_water = !draw_water;
+            break;
+        case '1':
+            render_mode = 1;
+            break;
+        case '2':
+            render_mode = 2;
             break;
         default:
             // Do nothing...
@@ -179,7 +187,8 @@ int main(int argc, char **argv)
 
     vector<int> number_of_atoms_of_each_type = current_timestep_object->get_number_of_atoms_of_each_type();
     char *title = new char[1000];
-    texture.create_sphere("sphere", 1000);
+    texture.create_sphere1("sphere1", 1000);
+    texture.create_sphere2("sphere2", 1000);
     
     while (running)
     {
