@@ -7,7 +7,6 @@ using namespace std;
 #include <CMath.h>
 #include <iostream>
 #include <vector>
-#include <CUtil.h>
 
 class CVector  {
  public:
@@ -137,8 +136,9 @@ class CVector  {
   
   inline CVector Normalize() const {
     double length = Length();
-    if (length!=0)
+    if (length!=0) {
       return *this/length;
+    } else return *this;
   }
   
   inline double Dot( const CVector& o) const {

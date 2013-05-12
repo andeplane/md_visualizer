@@ -55,15 +55,16 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
     glLoadIdentity();
  
     // Move the camera to our location in space
-    glRotatef(mdopengl.cam->getXRot(), 1.0f, 0.0f, 0.0f); // Rotate our camera on the x-axis (looking up and down)
-    glRotatef(mdopengl.cam->getYRot(), 0.0f, 1.0f, 0.0f); // Rotate our camera on the  y-axis (looking left and right)
+    glRotatef(mdopengl.camera->get_rot_x(), 1.0f, 0.0f, 0.0f); // Rotate our camera on the x-axis (looking up and down)
+    glRotatef(mdopengl.camera->get_rot_y(), 0.0f, 1.0f, 0.0f); // Rotate our camera on the  y-axis (looking left and right)
 
     // Translate the ModelView matrix to the position of our camera - everything should now be drawn relative
     // to this position!
-    glTranslatef( -mdopengl.cam->getXPos(), -mdopengl.cam->getYPos(), -mdopengl.cam->getZPos() );
+    glTranslatef( -mdopengl.camera->position.x, -mdopengl.camera->position.y, -mdopengl.camera->position.z );
 
     vector<vector<float> > &positions = timestep->positions;
     vector<int> &atom_types = timestep->atom_types;
+    CVector up_on_screen = mdopengl.coord_to_ray(0,mdopengl.window_height/2.0);
     if(render_mode == 1) texture.render_billboards(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
     if(render_mode == 2) texture.render_billboards2(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
 
@@ -72,8 +73,8 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
 }
 
 // Callback function to handle mouse movements
-void handle_mouse_move(int mouseX, int mouseY) {
-    mdopengl.cam->handleMouseMove(mouseX, mouseY);
+void handle_mouse_move(int mouse_x, int mouse_y) {
+    mdopengl.camera->handle_mouse_move(mouse_x, mouse_y);
 }
 
 // Callback function to handle keypresses
@@ -84,22 +85,22 @@ void handle_keypress(int theKey, int theAction) {
         switch (theKey)
         {
         case 'W':
-            mdopengl.cam->holdingForward = true;
+            mdopengl.camera->holding_forward = true;
             break;
         case 'S':
-            mdopengl.cam->holdingBackward = true;
+            mdopengl.camera->holding_backward = true;
             break;
         case 'A':
-            mdopengl.cam->holdingLeftStrafe = true;
+            mdopengl.camera->holding_left_strafe = true;
             break;
         case 'D':
-            mdopengl.cam->holdingRightStrafe = true;
+            mdopengl.camera->holding_right_strafe = true;
             break;
         case '[':
-            mdopengl.fps_manager.setTargetFps(mdopengl.fps_manager.getTargetFps() - 10);
+            mdopengl.fps_manager.set_target_fps(mdopengl.fps_manager.get_target_fps() - 10);
             break;
         case ']':
-            mdopengl.fps_manager.setTargetFps(mdopengl.fps_manager.getTargetFps() + 10);
+            mdopengl.fps_manager.set_target_fps(mdopengl.fps_manager.get_target_fps() + 10);
             break;
         case 'T':
             time_direction *= -1;
@@ -135,16 +136,16 @@ void handle_keypress(int theKey, int theAction) {
         switch (theKey)
         {
         case 'W':
-            mdopengl.cam->holdingForward = false;
+            mdopengl.camera->holding_forward = false;
             break;
         case 'S':
-            mdopengl.cam->holdingBackward = false;
+            mdopengl.camera->holding_backward = false;
             break;
         case 'A':
-            mdopengl.cam->holdingLeftStrafe = false;
+            mdopengl.camera->holding_left_strafe = false;
             break;
         case 'D':
-            mdopengl.cam->holdingRightStrafe = false;
+            mdopengl.camera->holding_right_strafe = false;
             break;
         default:
             // Do nothing...
@@ -195,7 +196,7 @@ int main(int argc, char **argv)
         if(!stop_loading) current_timestep_object = mts0_io->get_next_timestep(time_direction);
 
         // Calculate our camera movement
-        mdopengl.cam->move(system_size, periodic_boundary_conditions);
+        mdopengl.camera->move(system_size, periodic_boundary_conditions);
  
         // Draw our scene
         drawScene(mts0_io,mdopengl,current_timestep_object);
@@ -203,8 +204,8 @@ int main(int argc, char **argv)
         // exit if ESC was pressed or window was closed
         running = !glfwGetKey(GLFW_KEY_ESC) && glfwGetWindowParam(GLFW_OPENED);
  
-        // Call our fpsManager to limit the FPS and get the frame duration to pass to the cam->move method
-        double deltaTime = mdopengl.fps_manager.enforceFPS();
+        // Call our fpsManager to limit the FPS and get the frame duration to pass to the camera->move method
+        double deltaTime = mdopengl.fps_manager.enforce_fps();
         double fps = mdopengl.fps_manager.average_fps;
         // cout << "FPS: " << fps << endl;
         double t_in_ps = mts0_io->current_timestep*dt/1000;

@@ -3,17 +3,17 @@
 
 const double Camera::TO_RADS = 3.141592654 / 180.0; // The value of 1 degree in radians
  
-Camera::Camera(float theWindowWidth, float theWindowHeight)
+Camera::Camera(float window_width_, float window_height_)
 {
-	initCamera();
-	windowWidth  = theWindowWidth;
-	windowHeight = theWindowHeight;
- 
+	init_camera();
+	window_width = window_width_;
+	window_height = window_height_;
+	
 	// Calculate the middle of the window
-	windowMidX = windowWidth  / 2.0f;
-	windowMidY = windowHeight / 2.0f;
+	window_mid_x = window_width  / 2.0f;
+	window_mid_y = window_height / 2.0f;
  
-	glfwSetMousePos(windowMidX, windowMidY);
+	glfwSetMousePos(window_mid_x, window_mid_y);
 }
  
 Camera::~Camera()
@@ -22,55 +22,50 @@ Camera::~Camera()
 	// were declared on the stack.
 }
  
-void Camera::initCamera()
+void Camera::init_camera()
 {
-	// Set position, rotation and speed values to zero
-	position.zero();
-	rotation.zero();
-	speed.zero();
- 
 	// How fast we move (higher values mean we move and strafe faster)
-	movementSpeedFactor = 100.0;
+	movement_speed_factor = 100.0;
  
-	pitchSensitivity = 0.2; // How sensitive mouse movements affect looking up and down
-	yawSensitivity   = 0.2; // How sensitive mouse movements affect looking left and right
+	pitch_sensitivity = 0.2; // How sensitive mouse movements affect looking up and down
+	yaw_sensitivity   = 0.2; // How sensitive mouse movements affect looking left and right
  
 	// To begin with, we aren't holding down any keys
-	holdingForward     = false;
-	holdingBackward    = false;
-	holdingLeftStrafe  = false;
-	holdingRightStrafe = false;
+	holding_forward     = false;
+	holding_backward    = false;
+	holding_left_strafe  = false;
+	holding_right_strafe = false;
 }
  
 // Function to convert degrees to radians
-const double Camera::toRads(const double &theAngleInDegrees) const
+double Camera::to_rads(const double &angle_in_degrees) const
 {
-	return theAngleInDegrees * TO_RADS;
+	return angle_in_degrees * TO_RADS;
 }
  
 // Function to deal with mouse position changes
-void Camera::handleMouseMove(int mouseX, int mouseY)
+void Camera::handle_mouse_move(int mouse_x, int mouse_y)
 {
 	// Calculate our horizontal and vertical mouse movement from middle of the window
-	double horizMovement = (mouseX - windowMidX) * yawSensitivity;
-	double vertMovement  = (mouseY - windowMidY) * pitchSensitivity;
+	double movement_x = (mouse_x - window_mid_x) * yaw_sensitivity;
+	double movement_y  = (mouse_y - window_mid_y) * pitch_sensitivity;
 	
 	// Apply the mouse movement to our rotation vector. The vertical (look up and down)
 	// movement is applied on the X axis, and the horizontal (look left and right)
 	// movement is applied on the Y Axis
-	rotation.addX(vertMovement);
-	rotation.addY(horizMovement);
- 
+	rotation.x += movement_y;
+	rotation.y += movement_x;
+	
 	// Limit loking up to vertically up
-	if (rotation.getX() < -90)
+	if (rotation.x < -90)
 	{
-		rotation.setX(-90);
+		rotation.x = -90;
 	}
  
 	// Limit looking down to vertically down
-	if (rotation.getX() > 90)
+	if (rotation.x > 90)
 	{
-		rotation.setX(90);
+		rotation.x = 90;
 	}
  
 	// If you prefer to keep the angles in the range -180 to +180 use this code
@@ -91,79 +86,72 @@ void Camera::handleMouseMove(int mouseX, int mouseY)
 	// 0 degrees is looking directly down the negative Z axis "North", 90 degrees is "East", 180 degrees is "South", 270 degrees is "West"
 	// We can also do this so that our 360 degrees goes -180 through +180 and it works the same, but it's probably best to keep our
 	// range to 0 through 360 instead of -180 through +180.
-	if (rotation.getY() < 0)
+	if (rotation.y < 0)
 	{
-		rotation.addY(360);
+		rotation.y += 360;
 	}
-	if (rotation.getY() > 360)
+	if (rotation.y > 360)
 	{
-		rotation.addY(-360);
+		rotation.y += -360;
 	}
  
 	// Reset the mouse position to the centre of the window each frame
-	glfwSetMousePos(windowMidX, windowMidY);
+	glfwSetMousePos(window_mid_x, window_mid_y);
 }
  
 // Function to calculate which direction we need to move the camera and by what amount
 void Camera::move(vector<float> system_size, bool periodic_boundary_conditions)
 {
 	// Vector to break up our movement into components along the X, Y and Z axis
-	Vec3<double> movement;
+	CVector movement;
  
 	// Get the sine and cosine of our X and Y axis rotation
-	double sinXRot = sin( toRads( rotation.getX() ) );
-	double cosXRot = cos( toRads( rotation.getX() ) );
+	double sinXRot = sin( to_rads( rotation.x ) );
+	double cosXRot = cos( to_rads( rotation.x ) );
  
-	double sinYRot = sin( toRads( rotation.getY() ) );
-	double cosYRot = cos( toRads( rotation.getY() ) );
+	double sinYRot = sin( to_rads( rotation.y ) );
+	double cosYRot = cos( to_rads( rotation.y ) );
  
 	double pitchLimitFactor = cosXRot; // This cancels out moving on the Z axis when we're looking up or down
  
-	if (holdingForward)
+	if (holding_forward)
 	{
-		movement.addX(sinYRot * pitchLimitFactor);
-		movement.addY(-sinXRot);
-		movement.addZ(-cosYRot * pitchLimitFactor);
+		movement.x += sinYRot * pitchLimitFactor;
+		movement.y += -sinXRot;
+		movement.z += -cosYRot * pitchLimitFactor;
 	}
  
-	if (holdingBackward)
+	if (holding_backward)
 	{
-		movement.addX(-sinYRot * pitchLimitFactor);
-		movement.addY(sinXRot);
-		movement.addZ(cosYRot * pitchLimitFactor);
+		movement.x += -sinYRot * pitchLimitFactor;
+		movement.y += sinXRot;
+		movement.z += cosYRot * pitchLimitFactor;
 	}
  
-	if (holdingLeftStrafe)
+	if (holding_left_strafe)
 	{
-		movement.addX(-cosYRot);
-		movement.addZ(-sinYRot);
+		movement.x += -cosYRot;
+		movement.z += -sinYRot;
 	}
  
-	if (holdingRightStrafe)
+	if (holding_right_strafe)
 	{
-		movement.addX(cosYRot);
-		movement.addZ(sinYRot);
+		movement.x += cosYRot;
+		movement.z += sinYRot;
 	}
  
 	// Normalise our movement vector
-	movement.normalise();
+	movement.Normalize();
  
 	// Finally, apply the movement to our position
-	position += movement;
+	position = position+movement;
 	target.x = sinYRot*cosXRot;
 	target.y = -sinXRot;
 	target.z = -cosYRot*cosXRot;
-	pos.x = position.getX();
-	pos.y = position.getY();
-	pos.z = position.getZ();
-
+	
 	if(periodic_boundary_conditions) {
-		pos.x = fmod(pos.x + system_size[0],(double)system_size[0]);
-		pos.y = fmod(pos.y + system_size[1],(double)system_size[1]);
-		pos.z = fmod(pos.z + system_size[2],(double)system_size[2]);
-
-		position.setX(pos.x);
-		position.setY(pos.y);
-		position.setZ(pos.z);
+		position.x = fmod(position.x + system_size[0],(double)system_size[0]);
+		position.y = fmod(position.y + system_size[1],(double)system_size[1]);
+		position.z = fmod(position.z + system_size[2],(double)system_size[2]);
 	}
 }

@@ -13,16 +13,12 @@ public:
     static const int NOMIPMAP = 1;
     static const int MIPMAPALPHA = 2;
 
-    bool running;
-    // bool initialized, isblend, isdepth;          
     GLint window_width, window_height; 
     GLint mid_window_x, mid_window_y;
     double aspect_ratio;
     bool full_screen;
     
-    Camera *cam;
-    
-    // Define our window title to append the FPS stats to
+    Camera *camera;
     string window_title;
 
     // Create a FPS manager that locks to 60fps and updates the window title with stats every 3 seconds
@@ -36,9 +32,6 @@ public:
     void pop();
     void push();
     void init_GL();
-    void SetOrthographicProjection();
-    void ResetPerspectiveProjection();
-    void buffer2texture(GLuint texture, int w, int h, int type);
     void set_window_title(string title);
     CVector coord_to_ray(double px, double py);
     MDOpenGL() { }

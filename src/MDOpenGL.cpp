@@ -7,7 +7,6 @@ int redBits    = 8, greenBits = 8,    blueBits    = 8;
 int alphaBits  = 8, depthBits = 24,   stencilBits = 0;
 
 void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmouseposfun handle_mouse_move, bool full_screen) {
-    running = true;
     window_title = "Molecular Dynamics Visualizer (MDV) - timestep 0";
 
     window_width = w;
@@ -66,7 +65,7 @@ void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmousepos
     init_GL();
 
     // Instantiate our pointer to a Camera object providing it the size of the window
-    cam = new Camera(window_width, window_height);
+    camera = new Camera(window_width, window_height);
 
     // Set the mouse cursor to the centre of our window
     glfwSetMousePos(mid_window_x, mid_window_y);
@@ -125,60 +124,12 @@ void MDOpenGL::init_GL() {
     glShadeModel(GL_SMOOTH);
 }
 
-void MDOpenGL::SetOrthographicProjection() {
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  gluOrtho2D(0, window_width, 0, window_height);
-  glScalef(1, -1, 1);
-  glTranslatef(0, -window_height, 0);
-  glMatrixMode(GL_MODELVIEW);
-}
-
-void MDOpenGL::ResetPerspectiveProjection() {
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  glMatrixMode(GL_MODELVIEW);
-}
-
 void MDOpenGL::push() {
   glPushMatrix();
 }
 
 void MDOpenGL::pop() {
   glPopMatrix();
-}
-
-// switch to a texture class.. much better
-void MDOpenGL::buffer2texture(GLuint texture, int w, int h, int type) {
-
-  glEnable(GL_TEXTURE_2D);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  if (type==MIPMAP)
-    type = MIPMAPALPHA;
-       
-  if (type==NOMIPMAP) {
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    glCopyTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,0,0,w,h,0);
-  }
-  if (type==MIPMAPALPHA) {
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-    glCopyTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,0,0,w,h,0);
-    unsigned char *t = new unsigned char[w*h*4]; 
-  
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    // glTexSubImage2D(GL_TEXTURE_2D,0,0,0,w,h,GL_RGBA, GL_UNSIGNED_BYTE,t);
-    glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA, GL_UNSIGNED_BYTE,t);
-    //  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-    gluBuild2DMipmaps( GL_TEXTURE_2D, GL_RGBA ,w, h, GL_RGBA, GL_UNSIGNED_BYTE, t  );
-    delete[] t;
-  }
- 
-   glDisable(GL_TEXTURE_2D);
 }
 
 CVector MDOpenGL::coord_to_ray(double px, double py) {
