@@ -1,12 +1,16 @@
 #pragma once
 #include <GL/glew.h>
 #include <GL/glfw.h>      // Include OpenGL Framework library
-#include <Camera.h>       // Include our Camera header so we can work with Camera objects
-#include <FpsManager.hpp> // Include our FpsManager class
-#include <Vec3.hpp>       // Include our Vec3 class
 #include <string>
+#include <FpsManager.hpp> // Include our FpsManager class
 
 using std::string;
+
+class FpsManager;
+class Camera;
+class CVector;
+
+
 class MDOpenGL {
 public:   
     static const int MIPMAP = 0;
@@ -28,7 +32,7 @@ public:
     GLfloat near;
     GLfloat far;
 
-    void initialize(int w, int h, GLFWkeyfun cbfun, GLFWmouseposfun, bool full_screen);
+    void initialize(int w, int h, string window_title_, GLFWkeyfun cbfun, GLFWmouseposfun, bool full_screen);
     void pop();
     void push();
     void init_GL();

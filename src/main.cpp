@@ -26,13 +26,9 @@
 using std::string;
 using std::cout;
 using std::endl;
-                    // Not Av   Si                      Si-O       H            O      Na                   Cl
-double colors[7][3] = {{1,1,1},{230.0/255,230.0/255,0},{0,0,1},{1.0,1.0,1.0},{1,0,0},{9.0/255,92.0/255,0},{95.0/255,216.0/255,250.0/255}};
-double visual_atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 1.86, 1.02};
-double hit_atom_radii[7] = {0, 1.11, 0.66, 0.35, 0.66, 2*1.86, 2*1.02};
 
 vector<float> system_size;
-bool stop_loading = true;
+bool paused = true;
 bool draw_water = true;
 double dr2_max = 3500;
 double color_cutoff = 2000;
@@ -115,7 +111,7 @@ void handle_keypress(int theKey, int theAction) {
             periodic_boundary_conditions = !periodic_boundary_conditions;
             break;
         case ' ':
-            stop_loading = !stop_loading;
+            paused = !paused;
             break;
         case 'R':
             draw_water = !draw_water;
@@ -158,16 +154,15 @@ void handle_keypress(int theKey, int theAction) {
 int main(int argc, char **argv)
 {
     cout << "Controls: Use WSAD and the mouse to move around!" << endl;
- 
-    // Flag to keep our main loop running
-    bool running = true;
+    char *window_title = new char[1000];
     CIniFile ini;
+    Timestep *current_timestep_object;
+
     ini.load("md_visualizer.ini");
     int nx = ini.getint("nx");
     int ny = ini.getint("ny");
     int nz = ini.getint("nz");
     bool preload = ini.getbool("preload");
-    int current_timestep = 0;
     int max_timestep = ini.getint("max_timestep");
     string foldername_base = ini.getstring("foldername_base");
     dr2_max = ini.getdouble("dr2_max");
@@ -179,21 +174,21 @@ int main(int argc, char **argv)
     bool full_screen = ini.getbool("full_screen");
 
     mts0_io = new Mts0_io(nx,ny,nz,max_timestep, foldername_base, preload, remove_water, step);
-    
-    mdopengl.initialize(ini.getint("screen_width"),ini.getint("screen_height"), handle_keypress, handle_mouse_move, full_screen);
-    GLenum err = glewInit();
+    sprintf(window_title, "Molecular Dynamics Visualizer (MDV) - [%.2f fps] - t = %.2f ps (timestep %d - step: %d)",60.0, 0.0, mts0_io->current_timestep, mts0_io->step);
 
-    Timestep *current_timestep_object = mts0_io->get_next_timestep(time_direction);
+    mdopengl.initialize(ini.getint("screen_width"),ini.getint("screen_height"), string(window_title), handle_keypress, handle_mouse_move, full_screen);
+    GLenum error = glewInit();
+
+    current_timestep_object = mts0_io->get_next_timestep(time_direction);
     system_size = current_timestep_object->get_lx_ly_lz();
 
-    vector<int> number_of_atoms_of_each_type = current_timestep_object->get_number_of_atoms_of_each_type();
-    char *title = new char[1000];
     texture.create_sphere1("sphere1", 1000);
     texture.create_sphere2("sphere2", 1000);
     
+    bool running = true;
     while (running)
     {
-        if(!stop_loading) current_timestep_object = mts0_io->get_next_timestep(time_direction);
+        if(!paused) current_timestep_object = mts0_io->get_next_timestep(time_direction);
 
         // Calculate our camera movement
         mdopengl.camera->move(system_size, periodic_boundary_conditions);
@@ -204,14 +199,14 @@ int main(int argc, char **argv)
         // exit if ESC was pressed or window was closed
         running = !glfwGetKey(GLFW_KEY_ESC) && glfwGetWindowParam(GLFW_OPENED);
  
-        // Call our fpsManager to limit the FPS and get the frame duration to pass to the camera->move method
-        double deltaTime = mdopengl.fps_manager.enforce_fps();
+        // Call our fps manager to limit the FPS
+        mdopengl.fps_manager.enforce_fps();
         double fps = mdopengl.fps_manager.average_fps;
-        // cout << "FPS: " << fps << endl;
-        double t_in_ps = mts0_io->current_timestep*dt/1000;
 
-        sprintf(title, "Molecular Dynamics Visualizer (MDV) - [%.2f fps] - t = %.2f ps (timestep %d - step: %d)",fps, t_in_ps, mts0_io->current_timestep, mts0_io->step);
-        mdopengl.set_window_title(string(title));
+        // Calculate the current time in pico seconds to show in the title bar
+        double t_in_ps = mts0_io->current_timestep*dt/1000;
+        sprintf(window_title, "Molecular Dynamics Visualizer (MDV) - [%.2f fps] - t = %.2f ps (timestep %d - step: %d)",fps, t_in_ps, mts0_io->current_timestep, mts0_io->step);
+        mdopengl.set_window_title(string(window_title));
     }
  
     // Clean up GLFW and exit

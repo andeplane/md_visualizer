@@ -35,6 +35,7 @@ Mts0_io::Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername
 	preload = preload_;
 	foldername_base = foldername_base_;
 	max_timestep = max_timestep_;
+	current_timestep = -1; // Next will be 0
 	if(preload) load_timesteps();
 }
 

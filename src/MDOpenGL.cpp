@@ -1,13 +1,14 @@
 #include <MDOpenGL.h>
 #include <CMath.h>
 #include <CVector.h>
+#include <Camera.h>       // Include our Camera header so we can work with Camera objects
 
 // Frame counter and window settings variables
 int redBits    = 8, greenBits = 8,    blueBits    = 8;
 int alphaBits  = 8, depthBits = 24,   stencilBits = 0;
 
-void MDOpenGL::initialize(int w, int h, GLFWkeyfun handle_keypress, GLFWmouseposfun handle_mouse_move, bool full_screen) {
-    window_title = "Molecular Dynamics Visualizer (MDV) - timestep 0";
+void MDOpenGL::initialize(int w, int h, string window_title_, GLFWkeyfun handle_keypress, GLFWmouseposfun handle_mouse_move, bool full_screen) {
+    window_title = window_title_;
 
     window_width = w;
     window_height = h;
