@@ -3,7 +3,7 @@
 #include <iostream>
 #include <math.h>         // Used only for sin() and cos() functions
  
-#include <GL/glfw.h>      // Include OpenGL Framework library for the GLFW_PRESS constant only!
+#include <GLFW/glfw3.h>      // Include OpenGL Framework library for the GLFW_PRESS constant only!
  
 #include "Vec3.hpp"       // Include our custom Vec3 class
 #include <CVector.h>
@@ -28,7 +28,7 @@ class Camera
         int window_mid_y;
  
         // Method to set some reasonable default values. For internal use by the class only.
-        void init_camera();
+        void init_camera(double speed);
  
     public:
         static const double TO_RADS; // The value of 1 degree in radians
@@ -43,7 +43,7 @@ class Camera
         CVector position;
  
         // Constructors
-        Camera(float window_width_, float window_height_);
+        Camera(float window_width_, float window_height_, double camera_speed);
  
         // Destructor
         ~Camera();

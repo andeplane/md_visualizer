@@ -31,6 +31,7 @@ vector<float> system_size;
 bool paused = true;
 bool draw_water = true;
 double dr2_max = 3500;
+double water_dr2_max = 3500;
 double color_cutoff = 2000;
 MDTexture texture;
 MDOpenGL mdopengl;
@@ -61,8 +62,9 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
     vector<vector<float> > &positions = timestep->positions;
     vector<int> &atom_types = timestep->atom_types;
     CVector up_on_screen = mdopengl.coord_to_ray(0,mdopengl.window_height/2.0);
-    if(render_mode == 1) texture.render_billboards(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
+    if(render_mode == 1) texture.render_billboards(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions, water_dr2_max);
     if(render_mode == 2) texture.render_billboards2(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
+    if(render_mode == 3) texture.render_billboards3(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
 
     // ----- Stop Drawing Stuff! ------ 
     glfwSwapBuffers(); // Swap the buffers to display the scene (so we don't have to watch it being drawn!)
@@ -122,6 +124,9 @@ void handle_keypress(int theKey, int theAction) {
         case '2':
             render_mode = 2;
             break;
+        case '3':
+            render_mode = 3;
+            break;
         default:
             // Do nothing...
             break;
@@ -159,6 +164,7 @@ int main(int argc, char **argv)
     Timestep *current_timestep_object;
 
     ini.load("md_visualizer.ini");
+    double camera_speed = ini.getdouble("speed");
     int nx = ini.getint("nx");
     int ny = ini.getint("ny");
     int nz = ini.getint("nz");
@@ -166,17 +172,17 @@ int main(int argc, char **argv)
     int max_timestep = ini.getint("max_timestep");
     string foldername_base = ini.getstring("foldername_base");
     dr2_max = ini.getdouble("dr2_max");
+    water_dr2_max = ini.getdouble("water_dr2_max");
     color_cutoff = ini.getdouble("color_cutoff");
     double dt = ini.getdouble("dt");
     periodic_boundary_conditions = ini.getbool("periodic_boundary_conditions");
     step = ini.getint("step");
-    bool remove_water = ini.getbool("remove_water");
     bool full_screen = ini.getbool("full_screen");
 
-    mts0_io = new Mts0_io(nx,ny,nz,max_timestep, foldername_base, preload, remove_water, step);
+    mts0_io = new Mts0_io(nx,ny,nz,max_timestep, foldername_base, preload, step);
     sprintf(window_title, "Molecular Dynamics Visualizer (MDV) - [%.2f fps] - t = %.2f ps (timestep %d - step: %d)",60.0, 0.0, mts0_io->current_timestep, mts0_io->step);
 
-    mdopengl.initialize(ini.getint("screen_width"),ini.getint("screen_height"), string(window_title), handle_keypress, handle_mouse_move, full_screen);
+    mdopengl.initialize(ini.getint("screen_width"),ini.getint("screen_height"), string(window_title), handle_keypress, handle_mouse_move, full_screen, camera_speed);
     GLenum error = glewInit();
 
     current_timestep_object = mts0_io->get_next_timestep(time_direction);
@@ -184,6 +190,7 @@ int main(int argc, char **argv)
 
     texture.create_sphere1("sphere1", 1000);
     texture.create_sphere2("sphere2", 1000);
+    texture.prepare_billboards3();
     
     bool running = true;
     while (running)

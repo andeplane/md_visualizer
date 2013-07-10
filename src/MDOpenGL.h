@@ -1,6 +1,6 @@
 #pragma once
 #include <GL/glew.h>
-#include <GL/glfw.h>      // Include OpenGL Framework library
+#include <GLFW/glfw3.h>      // Include OpenGL Framework library
 #include <string>
 #include <FpsManager.hpp> // Include our FpsManager class
 
@@ -32,7 +32,7 @@ public:
     GLfloat near;
     GLfloat far;
 
-    void initialize(int w, int h, string window_title_, GLFWkeyfun cbfun, GLFWmouseposfun, bool full_screen);
+    void initialize(int w, int h, string window_title_, GLFWkeyfun cbfun, GLFWmouseposfun, bool full_screen, double camera_speed);
     void pop();
     void push();
     void init_GL();

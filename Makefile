@@ -18,7 +18,7 @@ LIBDIR =
 # compiler specific flags
 CFLAGS =  -O3 -D$(TARGET)
 
-FFLAGS = -lglew -lGLFW -framework GLUT -framework OpenGL
+FFLAGS = -lglew -lGLFW3 -framework GLUT -framework OpenGL
 
 PROJECT = main
 

@@ -1,11 +1,10 @@
 #include <Camera.h>
-#include <GL/glfw.h>      // Include OpenGL Framework library for the GLFW_PRESS constant only!
 
 const double Camera::TO_RADS = 3.141592654 / 180.0; // The value of 1 degree in radians
  
-Camera::Camera(float window_width_, float window_height_)
+Camera::Camera(float window_width_, float window_height_, double camera_speed)
 {
-	init_camera();
+	init_camera(camera_speed);
 	window_width = window_width_;
 	window_height = window_height_;
 	
@@ -22,10 +21,10 @@ Camera::~Camera()
 	// were declared on the stack.
 }
  
-void Camera::init_camera()
+void Camera::init_camera(double speed)
 {
 	// How fast we move (higher values mean we move and strafe faster)
-	movement_speed_factor = 100.0;
+	movement_speed_factor = speed;
  
 	pitch_sensitivity = 0.2; // How sensitive mouse movements affect looking up and down
 	yaw_sensitivity   = 0.2; // How sensitive mouse movements affect looking left and right

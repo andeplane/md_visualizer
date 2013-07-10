@@ -7,7 +7,7 @@
 int redBits    = 8, greenBits = 8,    blueBits    = 8;
 int alphaBits  = 8, depthBits = 24,   stencilBits = 0;
 
-void MDOpenGL::initialize(int w, int h, string window_title_, GLFWkeyfun handle_keypress, GLFWmouseposfun handle_mouse_move, bool full_screen) {
+void MDOpenGL::initialize(int w, int h, string window_title_, GLFWkeyfun handle_keypress, GLFWmouseposfun handle_mouse_move, bool full_screen, double camera_speed) {
     window_title = window_title_;
 
     window_width = w;
@@ -66,7 +66,7 @@ void MDOpenGL::initialize(int w, int h, string window_title_, GLFWkeyfun handle_
     init_GL();
 
     // Instantiate our pointer to a Camera object providing it the size of the window
-    camera = new Camera(window_width, window_height);
+    camera = new Camera(window_width, window_height, camera_speed);
 
     // Set the mouse cursor to the centre of our window
     glfwSetMousePos(mid_window_x, mid_window_y);

@@ -1,11 +1,92 @@
 #include <mts0_io.h>
 #include <math.h>
+#include <iostream>
+#include <fstream>
+#include <map>
+#include <utility>
+using namespace std;
+
+string get_file_extension(string& filename){
+    if(filename.find_last_of(".") != std::string::npos){
+        return filename.substr(filename.find_last_of(".")+1);
+    }
+    return "folder";
+}
+
+
+string get_file_basename(string& filename){
+    if(filename.find_last_of(".") != std::string::npos){
+        return filename.substr(0, filename.rfind("."));
+    }
+    return "folder";
+}
+
+char *type[] = {(char*)"Not in use", (char*)"Si",(char*)"A ",(char*)"H ",(char*)"O ",(char*)"Na",(char*)"Cl",(char*)"X "};
+
+void Timestep::load_atoms_xyz(string xyz_file) {
+	map<string,int> atom_type_list;
+	atom_type_list.insert(pair<string,int>("Si",1));
+	atom_type_list.insert(pair<string,int>("A",2));
+	atom_type_list.insert(pair<string,int>("H",3));
+	atom_type_list.insert(pair<string,int>("O",4));
+	atom_type_list.insert(pair<string,int>("Na",5));
+	atom_type_list.insert(pair<string,int>("Cl",6));
+	atom_type_list.insert(pair<string,int>("N",4));
+
+	ifstream file;
+	file.open(xyz_file.c_str());
+	int num_atoms;
+	file >> num_atoms;
+	string tmp;
+	file >> tmp;
+
+	string atom_type;
+	double x,y,z;
+	double max_x, max_y, max_z;
+	max_x = 0; max_y = 0; max_z = 0;
+	int atom_id;
+	
+	positions.resize(num_atoms);
+	atom_ids.resize(num_atoms);
+	atom_types.resize(num_atoms);
+
+	for(int i=0; i<num_atoms; i++) {
+		file >> atom_type >> x >> y >> z >> atom_id;
+		int atom_type_int = atom_type_list.find(atom_type)->second;
+		positions[i].resize(3);
+		positions[i][0] = x/10; positions[i][1] = y/10; positions[i][2] = z/10;
+		atom_ids[i] = atom_id;
+		atom_types[i] = atom_type_int;
+		max_x = max(max_x, x); 
+		max_y = max(max_y, y);
+		max_z = max(max_z, z);
+	}
+
+	h_matrix.resize(2);
+	for(int i=0;i<2;i++) {
+		h_matrix[i].resize(3);
+		for(int j=0;j<3;j++) {
+			h_matrix[i][j].resize(3);
+		}
+	}
+
+	h_matrix[0][0][0] = max_x;
+	h_matrix[1][0][0] = max_x;
+	h_matrix[0][1][1] = max_y;
+	h_matrix[1][1][1] = max_y;
+	h_matrix[0][2][2] = max_z;
+	h_matrix[1][2][2] = max_z;
+}
 
 Timestep::Timestep(string mts0_directory,int nx_, int ny_, int nz_) {
 	nx = nx_;
 	ny = ny_;
 	nz = nz_;
-	load_atoms(mts0_directory);
+	cout << get_file_extension(mts0_directory) << endl;
+	if(get_file_extension(mts0_directory).compare("xyz") == 0) {
+		load_atoms_xyz(mts0_directory);
+	}
+	else load_atoms(mts0_directory);
 }
 
 Timestep::~Timestep() {
@@ -15,20 +96,8 @@ Timestep::~Timestep() {
 	h_matrix.clear();
 }
 
-vector<int> Timestep::get_number_of_atoms_of_each_type() {
-	int num_atoms = atom_types.size();
-	vector<int> number_of_atoms_of_each_type;
-	number_of_atoms_of_each_type.resize(100,0);
-	for(int atom_index=0; atom_index<num_atoms; atom_index++) {
-		number_of_atoms_of_each_type[ atom_types[atom_index] ]++;
-	}
-
-	return number_of_atoms_of_each_type;
-}
-
-Mts0_io::Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, bool remove_water_, int step_) {
+Mts0_io::Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, int step_) {
 	step = step_;
-	remove_water = remove_water_;
 	nx = nx_;
 	ny = ny_;
 	nz = nz_;
@@ -98,35 +167,6 @@ void Timestep::read_mts(char *filename, vector<int> &atom_types_local, vector<in
 	delete file;
 }
 
-void Timestep::remove_water() {
-	for(int n=0;n<get_number_of_atoms(); n++) {
-		if(atom_types[n] == H_TYPE || atom_types[n] == O_TYPE) atom_is_removed[n] = true;
-	}
-
-	rearrange_vectors_by_moving_atoms_from_end_to_locations_where_atoms_have_been_removed();
-}
-
-void Timestep::rearrange_vectors_by_moving_atoms_from_end_to_locations_where_atoms_have_been_removed() {
-	int num_atoms_including_removed_atoms = get_number_of_atoms();
-
-	int remaining_atoms = 0;
-
-	for(int n=0; n<num_atoms_including_removed_atoms; n++) {
-		if(!atom_is_removed[n]) {
-			atom_types[remaining_atoms] = atom_types[n];
-			atom_ids[remaining_atoms] = atom_ids[n];
-			positions[remaining_atoms] = positions[n];
-			atom_is_removed[remaining_atoms] = false;
-			remaining_atoms++;
-		}
-	}
-
-	atom_types.erase(atom_types.begin()+remaining_atoms, atom_types.end());
-	atom_ids.erase  (atom_ids.begin()  +remaining_atoms, atom_ids.end());
-	positions.erase (positions.begin() +remaining_atoms, positions.end());
-	atom_is_removed.erase(atom_is_removed.begin()+remaining_atoms, atom_is_removed.end());
-}
-
 void Timestep::load_atoms(string mts0_directory) {
 	positions.clear();
 	atom_types.clear();
@@ -181,8 +221,6 @@ void Timestep::load_atoms(string mts0_directory) {
 		atom_ids.insert ( atom_ids.end() , atom_ids_local.begin() , atom_ids_local.end()  );
 	}
 
-	atom_is_removed.resize( get_number_of_atoms() ,false);
-
 	delete filename;
 	atom_types_local.clear();
 	atom_ids_local.clear();
@@ -191,86 +229,6 @@ void Timestep::load_atoms(string mts0_directory) {
 	node_vector_index.clear();
 	node_origin.clear();
 	node_offset.clear();
-}
-
-vector<vector<int> > Timestep::create_neighbor_list(const float &neighbor_list_radius) {
-	/*
-	Strategy: Divide system into boxes of size neighbor_list_radius/3. Assign all atoms into their boxes O(n).
-		      Loop through all boxes. Every atom is the neighbor of every other atom in this and the 26 neighboring boxes.
-	*/
-	float neighbor_list_radius_squared = neighbor_list_radius*neighbor_list_radius;
-	vector<vector<int> > neighbor_list;
-	int num_atoms = get_number_of_atoms();
-
-	neighbor_list.resize(num_atoms);
-	float box_size[3];
-	int box_id[3];
-	int num_boxes_xyz[3];
-	vector<float> length = get_lx_ly_lz();
-	for(int i=0;i<3;i++) {
-		box_size[i] = neighbor_list_radius;
-		num_boxes_xyz[i] = length[i]/box_size[i];
-		box_size[i] = length[i]/num_boxes_xyz[i];
-	}
-
-	int num_boxes = num_boxes_xyz[0]*num_boxes_xyz[1]*num_boxes_xyz[2];
-	
-	vector<vector<vector<vector<int> > > > boxes;
-
-	boxes.resize(num_boxes_xyz[0]);
-	for(int i=0;i<num_boxes_xyz[0];i++) {
-		boxes[i].resize(num_boxes_xyz[1]);
-		for(int j=0;j<num_boxes_xyz[1];j++) {
-			boxes[i][j].resize(num_boxes_xyz[2]);
-		}
-	}
-
-	// Assign atoms to boxes
-	for(int atom_index=0; atom_index<num_atoms; atom_index++) {
-		// +1e-5 makes sure that box_id does not reach num_boxes when positions[][i]==length[i]
-		for(int i=0;i<3;i++) box_id[i] = int(positions[atom_index][i]/(length[i]+1e-5)*num_boxes_xyz[i]);
-		vector<int> &box = boxes[ box_id[0] ][ box_id[1] ][ box_id[2] ];
-		box.push_back(atom_index);
-	}
-
-	// Loop over all boxes
-	for(int i=0;i<num_boxes_xyz[0];i++) {
-		for(int j=0;j<num_boxes_xyz[1];j++) {
-			for(int k=0;k<num_boxes_xyz[2];k++) {
-				vector<int> &box = boxes[i][j][k];
-				int num_atoms_in_this_box = box.size();
-
-				for(int n=0;n<num_atoms_in_this_box;n++) {
-					// This box
-					for(int m=n+1;m<num_atoms_in_this_box;m++) {
-						neighbor_list[ box[n] ].push_back(box[m]);
-						neighbor_list[ box[m] ].push_back(box[n]);
-					}
-
-					// Neighboring boxes (periodic boundaries)
-					for(int di=-1;di<=1;di++) {
-						for(int dj=-1;dj<=1;dj++) {
-							for(int dk=-1;dk<=1;dk++) {
-								if(di==0 && dj==0 && dk==0) continue; // Skip self
-								int neighbor_box_i = (i + di + num_boxes_xyz[0]) % num_boxes_xyz[0];
-								int neighbor_box_j = (j + dj + num_boxes_xyz[1]) % num_boxes_xyz[1];
-								int neighbor_box_k = (k + dk + num_boxes_xyz[2]) % num_boxes_xyz[2];
-								vector<int> &neighbor_box = boxes[neighbor_box_i][neighbor_box_j][neighbor_box_k];
-								int num_atoms_in_neighbor_box = neighbor_box.size();
-
-								for(int m=0;m<num_atoms_in_neighbor_box;m++) {
-									neighbor_list[ box[n] ].push_back(neighbor_box[m]);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	length.clear();
-
-	return neighbor_list;
 }
 
 int Timestep::get_number_of_atoms() {
@@ -293,8 +251,8 @@ void Mts0_io::load_timesteps() {
 
 	for(int timestep=0;timestep<=max_timestep;timestep++) {
 		sprintf(mts0_directory, "%s/%06d/mts0/",foldername_base.c_str(), timestep);
+		
 		Timestep *new_timestep = new Timestep(string(mts0_directory),nx, ny, nz);
-		if(remove_water) new_timestep->remove_water();
 		timesteps.push_back(new_timestep);
 		cout << "Loaded timestep " << timestep << endl;
 	}
@@ -312,9 +270,12 @@ Timestep *Mts0_io::get_next_timestep(int &time_direction) {
 	if(preload) {
 		return timesteps[current_timestep];
 	} else {
-		sprintf(mts0_directory, "%s/%06d/mts0/",foldername_base.c_str(), current_timestep);
+		if(get_file_extension(foldername_base).compare("xyz") == 0) {
+			sprintf(mts0_directory, "%s",foldername_base.c_str());
+		} else {
+			sprintf(mts0_directory, "%s/%06d/mts0/",foldername_base.c_str(), current_timestep);
+		}
 		Timestep *timestep = new Timestep(string(mts0_directory),nx, ny, nz);
-		if(remove_water) timestep->remove_water();
 		system_size = timestep->get_lx_ly_lz();
 		return timestep;
 	}

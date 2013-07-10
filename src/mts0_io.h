@@ -35,21 +35,17 @@ class Timestep {
 public:
   int nx, ny, nz;
   static const double bohr = 0.5291772;
-  vector<vector<int> > create_neighbor_list(const float &neighbor_list_radius);
   vector<vector<float> > positions;
   vector<int> atom_ids;
   vector<int> atom_types;
-  vector<bool> atom_is_removed;
   vector<vector<vector<float> > > h_matrix;
   vector<float> get_lx_ly_lz();
   int get_number_of_atoms();
-  vector<int> get_number_of_atoms_of_each_type();
-  void rearrange_vectors_by_moving_atoms_from_end_to_locations_where_atoms_have_been_removed();
-
+  
   Timestep(string filename, int nx_, int ny_, int nz_);
   ~Timestep();
-  void remove_water();
   void load_atoms(string filename);
+  void load_atoms_xyz(string xyz_file);
   void read_data(ifstream *file, void *value);
   void read_mts(char *filename, vector<int> &atom_types_local, vector<int> &atom_ids_local, vector<vector<float> > &positions_local);
 };
@@ -64,12 +60,10 @@ private:
 
 public:
   int step;
-  bool remove_water;
-  bool remove_silica;
   int current_timestep;
   vector<float> system_size;
 	int nx, ny, nz;
-  Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, bool remove_water_, int step_);
+  Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, int step_);
   Timestep *get_next_timestep(int &time_direction);
 
   void load_timesteps();
