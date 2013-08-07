@@ -6,6 +6,7 @@
 // Frame counter and window settings variables
 int redBits    = 8, greenBits = 8,    blueBits    = 8;
 int alphaBits  = 8, depthBits = 24,   stencilBits = 0;
+int stereoBits = 2;
 
 void MDOpenGL::initialize(int w, int h, string window_title_, GLFWkeyfun handle_keypress, GLFWmouseposfun handle_mouse_move, bool full_screen, double camera_speed) {
     window_title = window_title_;
@@ -27,6 +28,8 @@ void MDOpenGL::initialize(int w, int h, string window_title_, GLFWkeyfun handle_
         glfwTerminate();
         exit(1);
     }
+
+    // glfwOpenWindowHint( GLFW_STEREO, GL_TRUE );
 
     // Create a window
     // GLFW_FULLSCREEN / GLFW_WINDOW

@@ -49,6 +49,7 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
  
     // Reset the matrix
     glMatrixMode(GL_MODELVIEW);
+    glDrawBuffer(GL_BACK_RIGHT);
     glLoadIdentity();
  
     // Move the camera to our location in space
@@ -68,6 +69,24 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
 
     // ----- Stop Drawing Stuff! ------ 
     glfwSwapBuffers(); // Swap the buffers to display the scene (so we don't have to watch it being drawn!)
+    return;
+
+    // Reset the matrix
+    glMatrixMode(GL_MODELVIEW);
+    glDrawBuffer(GL_BACK_LEFT);
+    glLoadIdentity();
+ 
+    // Move the camera to our location in space
+    glRotatef(mdopengl.camera->get_rot_x(), 1.0f, 0.0f, 0.0f); // Rotate our camera on the x-axis (looking up and down)
+    glRotatef(mdopengl.camera->get_rot_y(), 0.0f, 1.0f, 0.0f); // Rotate our camera on the  y-axis (looking left and right)
+
+    // Translate the ModelView matrix to the position of our camera - everything should now be drawn relative
+    // to this position!
+    glTranslatef( -mdopengl.camera->position.x+100, -mdopengl.camera->position.y +20, -mdopengl.camera->position.z +20);
+
+    if(render_mode == 1) texture.render_billboards(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions, water_dr2_max);
+    if(render_mode == 2) texture.render_billboards2(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
+    if(render_mode == 3) texture.render_billboards3(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
 }
 
 // Callback function to handle mouse movements

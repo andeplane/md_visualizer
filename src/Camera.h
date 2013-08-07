@@ -3,7 +3,7 @@
 #include <iostream>
 #include <math.h>         // Used only for sin() and cos() functions
  
-#include <GLFW/glfw3.h>      // Include OpenGL Framework library for the GLFW_PRESS constant only!
+#include <GL/glfw.h>      // Include OpenGL Framework library for the GLFW_PRESS constant only!
  
 #include "Vec3.hpp"       // Include our custom Vec3 class
 #include <CVector.h>

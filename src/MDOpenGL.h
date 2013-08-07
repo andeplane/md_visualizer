@@ -1,6 +1,6 @@
 #pragma once
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>      // Include OpenGL Framework library
+#include <GL/glfw.h>      // Include OpenGL Framework library
 #include <string>
 #include <FpsManager.hpp> // Include our FpsManager class
 

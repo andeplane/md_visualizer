@@ -1,4 +1,4 @@
-#include <GLFW/glfw3.h>      // Include OpenGL Framework library
+#include <GL/glfw.h>      // Include OpenGL Framework library
 #include <CBitMap.h>
 #include <vector>
 using std::vector;
