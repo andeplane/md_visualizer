@@ -37,8 +37,8 @@ public:
 	void create_sphere1(string name, int w);
 	void create_sphere2(string name, int w);
 	void load_texture(CBitMap* bmp, MDOpenGLTexture* texture, bool has_alpha);
-	void render_billboards(MDOpenGL &opengl, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions, double water_dr2_max);
-	void render_billboards2(MDOpenGL &opengl, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions);
-	void render_billboards3(MDOpenGL &opengl, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions);
+	void render_billboards(MDOpenGL &opengl, vector<int> &visible_atom_indices, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions, double water_dr2_max);
+	void render_billboards2(MDOpenGL &opengl, vector<int> &visible_atom_indices, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions);
+	void render_billboards3(MDOpenGL &opengl, vector<int> &visible_atom_indices, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions);
 	void prepare_billboards3();
 };

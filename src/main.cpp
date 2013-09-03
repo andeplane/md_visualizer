@@ -29,6 +29,8 @@ using std::endl;
 
 vector<float> system_size;
 bool paused = true;
+bool record_video = false;
+int frame = 0;
 bool draw_water = true;
 double dr2_max = 3500;
 double water_dr2_max = 3500;
@@ -41,6 +43,9 @@ int step = 1;
 int time_direction = 1; //-1 to run time backwards
 Mts0_io *mts0_io;
 
+unsigned char *buffer = new unsigned char[4000*4000];
+CBitMap *bmp = new CBitMap();
+char filename[50];
 // Function to draw our scene
 void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
 {
@@ -62,31 +67,31 @@ void drawScene(Mts0_io *mts0_io, MDOpenGL &mdopengl, Timestep *timestep)
 
     vector<vector<float> > &positions = timestep->positions;
     vector<int> &atom_types = timestep->atom_types;
+    vector<int> &indices = timestep->visible_atom_indices;
     CVector up_on_screen = mdopengl.coord_to_ray(0,mdopengl.window_height/2.0);
-    if(render_mode == 1) texture.render_billboards(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions, water_dr2_max);
-    if(render_mode == 2) texture.render_billboards2(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
-    if(render_mode == 3) texture.render_billboards3(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
+    if(render_mode == 1) texture.render_billboards(mdopengl, indices, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions, water_dr2_max);
+    if(render_mode == 2) texture.render_billboards2(mdopengl, indices, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
+    if(render_mode == 3) texture.render_billboards3(mdopengl, indices, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
 
     // ----- Stop Drawing Stuff! ------ 
     glfwSwapBuffers(); // Swap the buffers to display the scene (so we don't have to watch it being drawn!)
-    return;
 
-    // Reset the matrix
-    glMatrixMode(GL_MODELVIEW);
-    glDrawBuffer(GL_BACK_LEFT);
-    glLoadIdentity();
- 
-    // Move the camera to our location in space
-    glRotatef(mdopengl.camera->get_rot_x(), 1.0f, 0.0f, 0.0f); // Rotate our camera on the x-axis (looking up and down)
-    glRotatef(mdopengl.camera->get_rot_y(), 0.0f, 1.0f, 0.0f); // Rotate our camera on the  y-axis (looking left and right)
+    if(record_video) {
+        GLenum format = GL_RGBA;
 
-    // Translate the ModelView matrix to the position of our camera - everything should now be drawn relative
-    // to this position!
-    glTranslatef( -mdopengl.camera->position.x+100, -mdopengl.camera->position.y +20, -mdopengl.camera->position.z +20);
-
-    if(render_mode == 1) texture.render_billboards(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions, water_dr2_max);
-    if(render_mode == 2) texture.render_billboards2(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
-    if(render_mode == 3) texture.render_billboards3(mdopengl, atom_types, positions, draw_water, color_cutoff, dr2_max, system_size, periodic_boundary_conditions);
+        glFinish(); // Make sure everything is drawn
+        glReadBuffer(GL_FRONT);
+        glPixelStorei(GL_PACK_ALIGNMENT, 4);
+        glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+        glPixelStorei(GL_PACK_SKIP_ROWS, 0);
+        glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
+        glReadPixels(0, 0, bmp->width, bmp->height, GL_BGR, GL_UNSIGNED_BYTE, buffer);
+        bmp->data = buffer;
+        sprintf(filename,"frames/%06d.bmp", frame);
+        bmp->SaveBMP(filename);
+        cout << "Saved frame " << filename << endl;
+        frame++;
+    }
 }
 
 // Callback function to handle mouse movements
@@ -197,6 +202,7 @@ int main(int argc, char **argv)
     periodic_boundary_conditions = ini.getbool("periodic_boundary_conditions");
     step = ini.getint("step");
     bool full_screen = ini.getbool("full_screen");
+    record_video = ini.getbool("record_video");
 
     mts0_io = new Mts0_io(nx,ny,nz,max_timestep, foldername_base, preload, step);
     sprintf(window_title, "Molecular Dynamics Visualizer (MDV) - [%.2f fps] - t = %.2f ps (timestep %d - step: %d)",60.0, 0.0, mts0_io->current_timestep, mts0_io->step);
@@ -204,7 +210,7 @@ int main(int argc, char **argv)
     mdopengl.initialize(ini.getint("screen_width"),ini.getint("screen_height"), string(window_title), handle_keypress, handle_mouse_move, full_screen, camera_speed);
     GLenum error = glewInit();
 
-    current_timestep_object = mts0_io->get_next_timestep(time_direction);
+    current_timestep_object = mts0_io->get_next_timestep(time_direction, mdopengl.camera->position.x, mdopengl.camera->position.y, mdopengl.camera->position.z, 2000000, dr2_max);
     system_size = current_timestep_object->get_lx_ly_lz();
 
     texture.create_sphere1("sphere1", 1000);
@@ -212,9 +218,17 @@ int main(int argc, char **argv)
     texture.prepare_billboards3();
     
     bool running = true;
+    int frames_since_update = 0;
+
+    bmp->Create(1680, 1050);
+
     while (running)
     {
-        if(!paused) current_timestep_object = mts0_io->get_next_timestep(time_direction);
+        if(!paused) current_timestep_object = mts0_io->get_next_timestep(time_direction, mdopengl.camera->position.x, mdopengl.camera->position.y, mdopengl.camera->position.z, 2000000, dr2_max);
+        if(++frames_since_update > 500) {
+            frames_since_update = 0;
+            current_timestep_object->update_visible_atom_list(mdopengl.camera->position.x, mdopengl.camera->position.y, mdopengl.camera->position.z, 2000000, dr2_max);
+        }
 
         // Calculate our camera movement
         mdopengl.camera->move(system_size, periodic_boundary_conditions);

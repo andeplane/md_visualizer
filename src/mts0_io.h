@@ -39,11 +39,13 @@ public:
   vector<int> atom_ids;
   vector<int> atom_types;
   vector<vector<vector<float> > > h_matrix;
+  vector<int> visible_atom_indices;
   vector<float> get_lx_ly_lz();
   int get_number_of_atoms();
   
   Timestep(string filename, int nx_, int ny_, int nz_);
   ~Timestep();
+  void update_visible_atom_list(float cam_x, float cam_y, float cam_z, int number_of_visible_atoms, float dr2_max);
   void load_atoms(string filename);
   void load_atoms_xyz(string xyz_file);
   void read_data(ifstream *file, void *value);
@@ -64,7 +66,8 @@ public:
   vector<float> system_size;
 	int nx, ny, nz;
   Mts0_io(int nx_, int ny_, int nz_, int max_timestep_, string foldername_base_, bool preload_, int step_);
-  Timestep *get_next_timestep(int &time_direction);
+
+  Timestep *get_next_timestep(int &time_direction, float cam_x, float cam_y, float cam_z, int max_num_atoms, float dr2_max);
 
   void load_timesteps();
 };

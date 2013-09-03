@@ -99,7 +99,7 @@ void MDTexture::load_texture(CBitMap* bmp, MDOpenGLTexture* texture, bool has_al
     
 }
 
-void MDTexture::render_billboards(MDOpenGL &opengl, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions, double water_dr2_max) {
+void MDTexture::render_billboards(MDOpenGL &opengl, vector<int> &visible_atom_indices, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions, double water_dr2_max) {
     Camera *camera = opengl.camera;
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
@@ -140,7 +140,8 @@ void MDTexture::render_billboards(MDOpenGL &opengl, vector<int> &atom_types, vec
     v3 = (right + up*-1);
     
     glNormal3f(direction.x, direction.y, direction.z);
-    for(int n=0; n<positions.size(); n++) {
+    for(int index=0; index<visible_atom_indices.size(); index++) {
+        int n = visible_atom_indices[index];
         int atom_type = atom_types[n];
         bool is_water = (atom_type == H_TYPE || atom_type == O_TYPE);
         if(is_water && !draw_water) continue;
@@ -172,7 +173,7 @@ void MDTexture::render_billboards(MDOpenGL &opengl, vector<int> &atom_types, vec
                     double cam_target_times_dr = delta_x*direction.x + delta_y*direction.y + delta_z*direction.z;
                     if(cam_target_times_dr < 0) continue;
 
-                    double color_factor = max( (1-dr2*one_over_color_cutoff),0.1);
+                    double color_factor = max( (1-dr2*one_over_color_cutoff),0.3);
                     glColor4f(color_factor*color_list[atom_type][0],color_factor*color_list[atom_type][1],color_factor*color_list[atom_type][2], 1.0);
                     
                     glTexCoord2f(0,0);
@@ -198,7 +199,7 @@ void MDTexture::render_billboards(MDOpenGL &opengl, vector<int> &atom_types, vec
     glColor4f(1.0,1.0,1.0,1.0);
 }
 
-void MDTexture::render_billboards2(MDOpenGL &opengl, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions) {
+void MDTexture::render_billboards2(MDOpenGL &opengl, vector<int> &visible_atom_indices, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions) {
     Camera *camera = opengl.camera;
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
@@ -303,7 +304,7 @@ void MDTexture::prepare_billboards3() {
     glGenBuffers(1, &colors_id);
 }
 
-void MDTexture::render_billboards3(MDOpenGL &opengl, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions) {
+void MDTexture::render_billboards3(MDOpenGL &opengl, vector<int> &visible_atom_indices, vector<int> &atom_types, vector<vector<float> > &positions, bool draw_water, double color_cutoff, double dr2_max, vector<float> system_size, bool periodic_boundary_conditions) {
     Camera *camera = opengl.camera;
     CVector left, up, right, direction, v0, v1, v2, v3;
     int S = 1.0;

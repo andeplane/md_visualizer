@@ -23,6 +23,27 @@ string get_file_basename(string& filename){
 
 char *type[] = {(char*)"Not in use", (char*)"Si",(char*)"A ",(char*)"H ",(char*)"O ",(char*)"Na",(char*)"Cl",(char*)"X "};
 
+void Timestep::update_visible_atom_list(float cam_x, float cam_y, float cam_z, int number_of_visible_atoms, float dr2_max) {
+	visible_atom_indices.clear();
+	visible_atom_indices.reserve(number_of_visible_atoms);
+
+	for(int n=0; n<get_number_of_atoms(); n++) {
+        double x = positions[n][0];
+        double y = positions[n][1];
+        double z = positions[n][2];
+
+        double delta_x = x - cam_x;
+        double delta_y = y - cam_y;
+        double delta_z = z - cam_z;
+
+        double dr2 = delta_x*delta_x + delta_y*delta_y + delta_z*delta_z;
+        if(dr2 < 50) continue;
+        if(dr2 > dr2_max) continue;
+
+        visible_atom_indices.push_back(n);
+	}
+}
+
 void Timestep::load_atoms_xyz(string xyz_file) {
 	map<string,int> atom_type_list;
 	atom_type_list.insert(pair<string,int>("Si",1));
@@ -54,7 +75,7 @@ void Timestep::load_atoms_xyz(string xyz_file) {
 		file >> atom_type >> x >> y >> z >> atom_id;
 		int atom_type_int = atom_type_list.find(atom_type)->second;
 		positions[i].resize(3);
-		positions[i][0] = x/10; positions[i][1] = y/10; positions[i][2] = z/10;
+		positions[i][0] = x; positions[i][1] = y; positions[i][2] = z;
 		atom_ids[i] = atom_id;
 		atom_types[i] = atom_type_int;
 		max_x = max(max_x, x); 
@@ -259,7 +280,7 @@ void Mts0_io::load_timesteps() {
 	system_size = timesteps[0]->get_lx_ly_lz();
 }
 
-Timestep *Mts0_io::get_next_timestep(int &time_direction) {
+Timestep *Mts0_io::get_next_timestep(int &time_direction, float cam_x, float cam_y, float cam_z, int max_num_atoms, float dr2_max) {
 	current_timestep += step*time_direction;
 
 	if(current_timestep>max_timestep || current_timestep < 0) {
@@ -276,6 +297,7 @@ Timestep *Mts0_io::get_next_timestep(int &time_direction) {
 			sprintf(mts0_directory, "%s/%06d/mts0/",foldername_base.c_str(), current_timestep);
 		}
 		Timestep *timestep = new Timestep(string(mts0_directory),nx, ny, nz);
+		timestep->update_visible_atom_list(cam_x, cam_y, cam_z, max_num_atoms, dr2_max);
 		system_size = timestep->get_lx_ly_lz();
 		return timestep;
 	}
