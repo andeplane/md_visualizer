@@ -3,6 +3,7 @@
 #include <MDOpenGL.h>
 #include <MDTexture.h>
 #include <Camera.h>
+#include <lodepng.h>
 
 #define SI_TYPE 1
 #define A_TYPE 2
@@ -75,6 +76,37 @@ void MDTexture::create_sphere2(string name, int w) {
         }
     }
     
+    load_texture(&bmp, &texture,true);
+    textures.push_back(texture);
+    names.push_back(name);
+}
+
+void MDTexture::load_png(string filename, string name) {
+    CBitMap bmp;
+    MDOpenGLTexture texture;
+
+    vector<unsigned char> image;
+    unsigned int width, height;
+    unsigned error = lodepng::decode(image, width, height, filename.c_str());
+
+  //if there's an error, display it
+  if(error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+
+  //the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
+
+    bmp.width = width;
+    bmp.height= height;
+    bmp.data = new unsigned char[4*width*height];
+
+    for (int i=0;i<width; i++) {
+        for (int j=0;j<height; j++) {
+            bmp.data[4*i + 4*width*j  +0] = image[4*i + 4*width*j  +0];
+            bmp.data[4*i + 4*width*j  +1] = image[4*i + 4*width*j  +1];
+            bmp.data[4*i + 4*width*j  +2] = image[4*i + 4*width*j  +2];
+            bmp.data[4*i + 4*width*j  +3] = image[4*i + 4*width*j  +3];
+        }
+    }
+
     load_texture(&bmp, &texture,true);
     textures.push_back(texture);
     names.push_back(name);

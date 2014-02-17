@@ -61,9 +61,11 @@ void MDOpenGL::initialize(int w, int h, string window_title_, GLFWkeyfun handle_
             glfwTerminate();
             exit(1);
         }
-
+        glfwSetWindowSize(w,h);
         glfwSetWindowPos(0,0);
     }
+
+    
 
     // Call our initGL function to set up our OpenGL options
     init_GL();

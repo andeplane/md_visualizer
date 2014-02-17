@@ -136,6 +136,9 @@ void handle_keypress(int theKey, int theAction) {
         case 'B':
             periodic_boundary_conditions = !periodic_boundary_conditions;
             break;
+        case 'V':
+            record_video = !record_video;
+            break;
         case ' ':
             paused = !paused;
             break;
@@ -213,14 +216,15 @@ int main(int argc, char **argv)
     current_timestep_object = mts0_io->get_next_timestep(time_direction, mdopengl.camera->position.x, mdopengl.camera->position.y, mdopengl.camera->position.z, 2000000, dr2_max);
     system_size = current_timestep_object->get_lx_ly_lz();
 
-    texture.create_sphere1("sphere1", 1000);
-    texture.create_sphere2("sphere2", 1000);
-    texture.prepare_billboards3();
+    texture.load_png("sphere2.png", "sphere1");
+    // texture.create_sphere1("sphere1", 1000);
+    // texture.create_sphere2("sphere2", 1000);
+    // texture.prepare_billboards3();
     
     bool running = true;
     int frames_since_update = 0;
 
-    bmp->Create(1680, 1050);
+    bmp->Create(ini.getint("screen_width"),ini.getint("screen_height"));
 
     while (running)
     {

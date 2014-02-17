@@ -34,6 +34,7 @@ public:
 	vector<MDOpenGLTexture> textures;
 	vector<string> names;
 
+	void load_png(string filename, string name);
 	void create_sphere1(string name, int w);
 	void create_sphere2(string name, int w);
 	void load_texture(CBitMap* bmp, MDOpenGLTexture* texture, bool has_alpha);
